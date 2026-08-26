@@ -16,9 +16,34 @@ const ALGORITMOS = {
       "Pega cada elemento e o insere na posicao correta entre os " +
       "elementos ja ordenados a esquerda.",
   },
+  shell: {
+    titulo: "Shell Sort",
+    descricaoExemplo:
+      "Como o Insertion Sort, mas compara elementos distantes (gap) " +
+      "primeiro, reduzindo o gap a cada passada ate chegar em 1.",
+  },
+  selection: {
+    titulo: "Selection Sort",
+    descricaoExemplo:
+      "Encontra o menor elemento restante e o troca pra posicao atual, " +
+      "avancando da esquerda pra direita.",
+  },
+  quick: {
+    titulo: "Quick Sort",
+    descricaoExemplo:
+      "Escolhe um pivo, particiona o array em menores/maiores que ele " +
+      "e repete recursivamente em cada metade.",
+  },
+  merge: {
+    titulo: "Merge Sort",
+    descricaoExemplo:
+      "Divide o array ao meio recursivamente e depois intercala " +
+      "(merge) as metades ja ordenadas de volta.",
+  },
 };
 
 const LIMITE_AVISO = 700_000;
+const ALGORITMOS_QUADRATICOS = new Set(["bubble", "insertion", "selection"]);
 
 async function apiGet(path) {
   const res = await fetch(path);
@@ -97,6 +122,125 @@ function* passosInsertion(arr) {
   }
 }
 
+function* passosShell(arr) {
+  const a = arr.slice();
+  const n = a.length;
+  let gap = Math.floor(n / 2);
+  while (gap > 0) {
+    for (let i = gap; i < n; i++) {
+      let j = i;
+      yield { tipo: "comparar", indices: [j - gap, j] };
+      while (j >= gap && a[j - gap] > a[j]) {
+        [a[j - gap], a[j]] = [a[j], a[j - gap]];
+        yield { tipo: "trocar", indices: [j - gap, j], estado: a.slice() };
+        j -= gap;
+        if (j >= gap) yield { tipo: "comparar", indices: [j - gap, j] };
+      }
+    }
+    gap = Math.floor(gap / 2);
+  }
+  for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
+}
+
+function* passosSelection(arr) {
+  const a = arr.slice();
+  const n = a.length;
+  for (let i = 0; i < n - 1; i++) {
+    let minIdx = i;
+    for (let j = i + 1; j < n; j++) {
+      yield { tipo: "comparar", indices: [minIdx, j] };
+      if (a[j] < a[minIdx]) minIdx = j;
+    }
+    if (minIdx !== i) {
+      [a[i], a[minIdx]] = [a[minIdx], a[i]];
+      yield { tipo: "trocar", indices: [i, minIdx], estado: a.slice() };
+    }
+    yield { tipo: "fixar", indice: i };
+  }
+  yield { tipo: "fixar", indice: n - 1 };
+}
+
+function* passosQuick(arr) {
+  const a = arr.slice();
+
+  function* particionar(lo, hi) {
+    const pivot = a[hi];
+    let i = lo - 1;
+    for (let j = lo; j < hi; j++) {
+      yield { tipo: "comparar", indices: [j, hi] };
+      if (a[j] <= pivot) {
+        i++;
+        if (i !== j) {
+          [a[i], a[j]] = [a[j], a[i]];
+          yield { tipo: "trocar", indices: [i, j], estado: a.slice() };
+        }
+      }
+    }
+    if (i + 1 !== hi) {
+      [a[i + 1], a[hi]] = [a[hi], a[i + 1]];
+      yield { tipo: "trocar", indices: [i + 1, hi], estado: a.slice() };
+    }
+    return i + 1;
+  }
+
+  function* ordenar(lo, hi) {
+    if (lo >= hi) {
+      if (lo === hi) yield { tipo: "fixar", indice: lo };
+      return;
+    }
+    const p = yield* particionar(lo, hi);
+    yield { tipo: "fixar", indice: p };
+    yield* ordenar(lo, p - 1);
+    yield* ordenar(p + 1, hi);
+  }
+
+  yield* ordenar(0, a.length - 1);
+  for (let k = 0; k < a.length; k++) yield { tipo: "fixar", indice: k };
+}
+
+function* passosMerge(arr) {
+  const a = arr.slice();
+  const n = a.length;
+  const temp = new Array(n);
+
+  function* mesclar(lo, mid, hi) {
+    let i = lo;
+    let j = mid + 1;
+    let k = lo;
+    while (i <= mid && j <= hi) {
+      yield { tipo: "comparar", indices: [i, j] };
+      if (a[i] <= a[j]) temp[k++] = a[i++];
+      else temp[k++] = a[j++];
+    }
+    while (i <= mid) temp[k++] = a[i++];
+    while (j <= hi) temp[k++] = a[j++];
+    for (let x = lo; x <= hi; x++) a[x] = temp[x];
+    const destaque = [];
+    for (let x = lo; x <= hi; x++) destaque.push(x);
+    yield { tipo: "definir", estado: a.slice(), destaque };
+  }
+
+  function* ordenar(lo, hi) {
+    if (lo >= hi) return;
+    const mid = lo + Math.floor((hi - lo) / 2);
+    yield* ordenar(lo, mid);
+    yield* ordenar(mid + 1, hi);
+    yield* mesclar(lo, mid, hi);
+  }
+
+  yield* ordenar(0, n - 1);
+  for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
+}
+
+const GERADORES_PASSOS = {
+  bubble: passosBubble,
+  insertion: passosInsertion,
+  shell: passosShell,
+  selection: passosSelection,
+  quick: passosQuick,
+  merge: passosMerge,
+};
+
 class Animacao {
   constructor(container, algoritmo) {
     this.container = container;
@@ -114,7 +258,7 @@ class Animacao {
       const el = document.createElement("div");
       el.className = "barra";
       el.style.left = `${i * 20}%`;
-      el.style.height = `${20 + v}px`;
+      el.style.height = `${20 + v * 3}px`;
       el.textContent = v;
       this.container.appendChild(el);
       return el;
@@ -124,6 +268,13 @@ class Animacao {
   setEstado(valores) {
     valores.forEach((v, i) => {
       this.barras[i].style.left = `${i * 20}%`;
+    });
+  }
+
+  setConteudo(valores) {
+    valores.forEach((v, i) => {
+      this.barras[i].textContent = v;
+      this.barras[i].style.height = `${20 + v * 3}px`;
     });
   }
 
@@ -137,8 +288,7 @@ class Animacao {
       this.renderBase(valores);
       await sleep(500);
 
-      const gerador =
-        this.algoritmo === "bubble" ? passosBubble(valores) : passosInsertion(valores);
+      const gerador = GERADORES_PASSOS[this.algoritmo](valores);
 
       for (const passo of gerador) {
         if (!this.rodando) return;
@@ -155,6 +305,10 @@ class Animacao {
           this.barras[j].classList.add("trocando");
           [this.barras[i], this.barras[j]] = [this.barras[j], this.barras[i]];
           this.setEstado(passo.estado);
+          await sleep(450);
+        } else if (passo.tipo === "definir") {
+          (passo.destaque || []).forEach((idx) => this.barras[idx].classList.add("trocando"));
+          this.setConteudo(passo.estado);
           await sleep(450);
         } else if (passo.tipo === "fixar") {
           this.barras[passo.indice].classList.remove("comparando", "trocando");
@@ -269,7 +423,7 @@ class Painel {
     const opcao = this.selectArquivo.selectedOptions[0];
     const match = arquivo.match(/_(\d+)\.txt$/);
     const tamanho = match ? parseInt(match[1], 10) : 0;
-    if (tamanho >= LIMITE_AVISO) {
+    if (tamanho >= LIMITE_AVISO && ALGORITMOS_QUADRATICOS.has(this.key)) {
       const nomeAlgo = ALGORITMOS[this.key].titulo;
       const ok = confirm(
         `Aviso: ${nomeAlgo} e O(n^2). Com ${formatarNumero(tamanho)} numeros isso ` +
@@ -318,12 +472,348 @@ class Painel {
         const href = `/api/resultado?arquivo=${encodeURIComponent(status.arquivo_saida)}`;
         this.resultado.innerHTML =
           `Concluido em ${formatarMinutos(status.tempo)}<br>` +
-          `Resultado salvo em <code>resultados/${status.arquivo_saida}</code> — ` +
+          `Resultado salvo em <code>resultados/${status.arquivo_saida}</code>, ` +
           `<a href="${href}" download>baixar</a>`;
       }
       this.btnOrdenar.disabled = false;
       return;
     }
+  }
+}
+
+// ---------- aba comparativo ----------
+
+const CORES_ALGORITMO = {
+  bubble: "#ff8a65",
+  insertion: "#5ea1ff",
+  shell: "#7fe0a8",
+  selection: "#d17fe0",
+  quick: "#e0d17f",
+  merge: "#7fc8e0",
+};
+
+const NOMES_ALGORITMO = {
+  bubble: "Bubble Sort",
+  insertion: "Insertion Sort",
+  shell: "Shell Sort",
+  selection: "Selection Sort",
+  quick: "Quick Sort",
+  merge: "Merge Sort",
+};
+
+const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection", "quick", "merge"];
+
+function criarSvg(tag, attrs) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function renderLegenda(algoritmos = ORDEM_ALGORITMOS) {
+  const div = document.createElement("div");
+  div.className = "legenda-comparativo";
+  algoritmos.forEach((algoritmo) => {
+    const item = document.createElement("span");
+    item.className = "legenda-item";
+    const cor = document.createElement("span");
+    cor.className = "legenda-cor";
+    cor.style.background = CORES_ALGORITMO[algoritmo];
+    item.appendChild(cor);
+    item.appendChild(document.createTextNode(NOMES_ALGORITMO[algoritmo]));
+    div.appendChild(item);
+  });
+  return div;
+}
+
+function ultimoRegistroPorAlgoritmoTamanho(registros, tipo) {
+  // Mapa algoritmo -> Map(tamanho -> registro mais recente), filtrado por tipo.
+  const mapa = new Map();
+  for (const algoritmo of ORDEM_ALGORITMOS) mapa.set(algoritmo, new Map());
+  for (const r of registros) {
+    if (r.tipo !== tipo) continue;
+    mapa.get(r.algoritmo)?.set(r.tamanho, r);
+  }
+  return mapa;
+}
+
+function formatarTempo(tempo) {
+  return tempo >= 1 ? `${tempo.toFixed(2)}s` : `${(tempo * 1000).toFixed(1)}ms`;
+}
+
+// Grafico de linha generico: tamanho do dataset (X) x tempo (Y), uma linha
+// por algoritmo. `escala` = "log" ou "linear"; `algoritmos` filtra quais
+// linhas desenhar (pra permitir um grafico "zoom" so nos rapidos).
+function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, escala = "log", titulo: tituloTxt } = {}) {
+  const porAlgoritmo = ultimoRegistroPorAlgoritmoTamanho(registros, tipo);
+  const tamanhos = [...new Set(registros.map((r) => r.tamanho))].sort((a, b) => a - b);
+
+  const largura = 1400;
+  const alturaGrafico = 520;
+  const margemEsq = 90;
+  const margemDir = 32;
+  const margemBaixo = 52;
+  const margemTopo = 24;
+  const larguraUtil = largura - margemEsq - margemDir;
+
+  const todosValores = algoritmos
+    .flatMap((algoritmo) => [...(porAlgoritmo.get(algoritmo)?.values() ?? [])])
+    .map((r) => r.tempo_s)
+    .filter((v) => v > 0);
+  const maxTempo = todosValores.length ? Math.max(...todosValores) : 1;
+  const minTempo = todosValores.length ? Math.min(...todosValores) : 0.0001;
+
+  const logMin = Math.log10(Math.max(minTempo, 0.0001));
+  const logMax = Math.log10(Math.max(maxTempo, minTempo * 10));
+  const linMax = maxTempo * 1.15;
+
+  function x(tamanho) {
+    if (tamanhos.length <= 1) return margemEsq + larguraUtil / 2;
+    const idx = tamanhos.indexOf(tamanho);
+    return margemEsq + (idx / (tamanhos.length - 1)) * larguraUtil;
+  }
+  function y(tempo) {
+    if (escala === "linear") {
+      const frac = linMax > 0 ? tempo / linMax : 0;
+      return margemTopo + alturaGrafico - frac * alturaGrafico;
+    }
+    const t = Math.max(tempo, 0.0001);
+    const frac = (Math.log10(t) - logMin) / (logMax - logMin || 1);
+    return margemTopo + alturaGrafico - frac * alturaGrafico;
+  }
+
+  const svg = criarSvg("svg", {
+    class: "grafico-svg",
+    viewBox: `0 0 ${largura} ${alturaGrafico + margemBaixo + margemTopo}`,
+  });
+
+  // grade horizontal (linhas de tempo) + vertical (linhas de tamanho)
+  const grade = criarSvg("g", { class: "grade" });
+  const N_LINHAS_Y = 5;
+  for (let i = 0; i <= N_LINHAS_Y; i++) {
+    const yy = margemTopo + (alturaGrafico / N_LINHAS_Y) * i;
+    grade.appendChild(criarSvg("line", { x1: margemEsq, x2: largura - margemDir, y1: yy, y2: yy }));
+  }
+  tamanhos.forEach((tamanho) => {
+    const xx = x(tamanho);
+    grade.appendChild(criarSvg("line", { x1: xx, x2: xx, y1: margemTopo, y2: margemTopo + alturaGrafico }));
+  });
+  svg.appendChild(grade);
+
+  // moldura do grafico
+  svg.appendChild(
+    criarSvg("rect", {
+      x: margemEsq,
+      y: margemTopo,
+      width: larguraUtil,
+      height: alturaGrafico,
+      fill: "none",
+      class: "moldura",
+    })
+  );
+
+  for (let i = 0; i <= N_LINHAS_Y; i++) {
+    const frac = i / N_LINHAS_Y;
+    let tempo;
+    if (escala === "linear") {
+      tempo = linMax * (1 - frac);
+    } else {
+      const logV = logMin + (1 - frac) * (logMax - logMin);
+      tempo = Math.pow(10, logV);
+    }
+    const yy = margemTopo + (alturaGrafico / N_LINHAS_Y) * i;
+    const label = criarSvg("text", { x: margemEsq - 10, y: yy + 4, "text-anchor": "end" });
+    label.textContent = formatarTempo(tempo);
+    svg.appendChild(label);
+  }
+
+  tamanhos.forEach((tamanho) => {
+    const xx = x(tamanho);
+    const label = criarSvg("text", {
+      x: xx,
+      y: margemTopo + alturaGrafico + 22,
+      "text-anchor": "middle",
+    });
+    label.textContent = formatarNumero(tamanho);
+    svg.appendChild(label);
+  });
+
+  algoritmos.forEach((algoritmo) => {
+    const pontos = tamanhos
+      .map((tamanho) => {
+        const registro = porAlgoritmo.get(algoritmo)?.get(tamanho);
+        return registro ? { tamanho, tempo: registro.tempo_s } : null;
+      })
+      .filter(Boolean);
+    if (pontos.length === 0) return;
+
+    const d = pontos
+      .map((p, i) => `${i === 0 ? "M" : "L"} ${x(p.tamanho)} ${y(p.tempo)}`)
+      .join(" ");
+    svg.appendChild(
+      criarSvg("path", {
+        d,
+        fill: "none",
+        stroke: CORES_ALGORITMO[algoritmo],
+        "stroke-width": 2.5,
+      })
+    );
+    pontos.forEach((p) => {
+      const ponto = criarSvg("circle", {
+        cx: x(p.tamanho),
+        cy: y(p.tempo),
+        r: 4,
+        fill: CORES_ALGORITMO[algoritmo],
+      });
+      const tip = criarSvg("title", {});
+      tip.textContent = `${NOMES_ALGORITMO[algoritmo]}, ${formatarNumero(p.tamanho)}, ${formatarTempo(p.tempo)}`;
+      ponto.appendChild(tip);
+      svg.appendChild(ponto);
+    });
+  });
+
+  const container = document.createElement("div");
+  container.className = "grafico-tamanho";
+  const titulo = document.createElement("h3");
+  titulo.textContent = tituloTxt ?? `Tempo x tamanho do dataset ${tipo}`;
+  container.appendChild(titulo);
+  container.appendChild(renderLegenda(algoritmos));
+  container.appendChild(svg);
+  return container;
+}
+
+// Grafico de barras: um algoritmo por barra, pro maior tamanho de dataset
+// disponivel, escala log -- da pra comparar todos os 6 lado a lado de uma
+// vez so, sem depender de olhar varios pontos numa linha.
+function renderGraficoBarrasMaiorTamanho(registros, tipo) {
+  const tamanhos = [...new Set(registros.map((r) => r.tamanho))].sort((a, b) => a - b);
+  const maiorTamanho = tamanhos[tamanhos.length - 1];
+  const porAlgoritmo = ultimoRegistroPorAlgoritmoTamanho(registros, tipo);
+
+  const barras = ORDEM_ALGORITMOS.map((algoritmo) => {
+    const registro = porAlgoritmo.get(algoritmo)?.get(maiorTamanho);
+    return { algoritmo, tempo: registro ? registro.tempo_s : null };
+  });
+
+  const largura = 1400;
+  const alturaGrafico = 460;
+  const margemEsq = 90;
+  const margemDir = 32;
+  const margemBaixo = 48;
+  const margemTopo = 24;
+  const larguraUtil = largura - margemEsq - margemDir;
+
+  const valores = barras.map((b) => b.tempo).filter((v) => v > 0);
+  const maxTempo = valores.length ? Math.max(...valores) : 1;
+  const minTempo = valores.length ? Math.min(...valores) : 0.0001;
+  const logMin = Math.log10(Math.max(minTempo, 0.0001));
+  const logMax = Math.log10(Math.max(maxTempo, minTempo * 10));
+
+  function alturaBarra(tempo) {
+    const t = Math.max(tempo, 0.0001);
+    const frac = (Math.log10(t) - logMin) / (logMax - logMin || 1);
+    return frac * alturaGrafico;
+  }
+
+  const larguraGrupo = larguraUtil / barras.length;
+  const larguraBarra = larguraGrupo * 0.55;
+
+  const svg = criarSvg("svg", {
+    class: "grafico-svg",
+    viewBox: `0 0 ${largura} ${alturaGrafico + margemBaixo + margemTopo}`,
+  });
+
+  const grade = criarSvg("g", { class: "grade" });
+  const N_LINHAS_Y = 5;
+  for (let i = 0; i <= N_LINHAS_Y; i++) {
+    const yy = margemTopo + (alturaGrafico / N_LINHAS_Y) * i;
+    grade.appendChild(criarSvg("line", { x1: margemEsq, x2: largura - margemDir, y1: yy, y2: yy }));
+  }
+  svg.appendChild(grade);
+  svg.appendChild(
+    criarSvg("rect", {
+      x: margemEsq,
+      y: margemTopo,
+      width: larguraUtil,
+      height: alturaGrafico,
+      fill: "none",
+      class: "moldura",
+    })
+  );
+
+  for (let i = 0; i <= N_LINHAS_Y; i++) {
+    const frac = i / N_LINHAS_Y;
+    const logV = logMin + (1 - frac) * (logMax - logMin);
+    const tempo = Math.pow(10, logV);
+    const yy = margemTopo + (alturaGrafico / N_LINHAS_Y) * i;
+    const label = criarSvg("text", { x: margemEsq - 10, y: yy + 4, "text-anchor": "end" });
+    label.textContent = formatarTempo(tempo);
+    svg.appendChild(label);
+  }
+
+  barras.forEach((b, i) => {
+    const xGrupo = margemEsq + i * larguraGrupo + (larguraGrupo - larguraBarra) / 2;
+    if (b.tempo == null) return;
+    const h = Math.max(alturaBarra(b.tempo), 1);
+    const yTopo = margemTopo + alturaGrafico - h;
+    const rect = criarSvg("rect", {
+      x: xGrupo,
+      y: yTopo,
+      width: larguraBarra,
+      height: h,
+      fill: CORES_ALGORITMO[b.algoritmo],
+      rx: 0,
+    });
+    const tip = criarSvg("title", {});
+    tip.textContent = `${NOMES_ALGORITMO[b.algoritmo]}, ${formatarTempo(b.tempo)}`;
+    rect.appendChild(tip);
+    svg.appendChild(rect);
+
+    const valorTxt = criarSvg("text", {
+      x: xGrupo + larguraBarra / 2,
+      y: yTopo - 6,
+      "text-anchor": "middle",
+      class: "barra-valor",
+    });
+    valorTxt.textContent = formatarTempo(b.tempo);
+    svg.appendChild(valorTxt);
+
+    const rotulo = criarSvg("text", {
+      x: xGrupo + larguraBarra / 2,
+      y: margemTopo + alturaGrafico + 20,
+      "text-anchor": "middle",
+    });
+    rotulo.textContent = NOMES_ALGORITMO[b.algoritmo];
+    svg.appendChild(rotulo);
+  });
+
+  const container = document.createElement("div");
+  container.className = "grafico-tamanho";
+  const titulo = document.createElement("h3");
+  titulo.textContent = `${formatarNumero(maiorTamanho)} dataset ${tipo}`;
+  container.appendChild(titulo);
+  container.appendChild(svg);
+  return container;
+}
+
+async function carregarComparativo() {
+  const destinoLinha = document.getElementById("grafico-linha-comparativo");
+  const tipo = document.getElementById("select-tipo-comparativo").value;
+  destinoLinha.innerHTML = "Carregando...";
+  try {
+    const { registros } = await apiGet("/api/tempos");
+    if (registros.length === 0) {
+      destinoLinha.innerHTML = "<p>Nenhum tempo registrado ainda em resultados/tempos.md.</p>";
+      return;
+    }
+    destinoLinha.innerHTML = "";
+    destinoLinha.appendChild(
+      renderGraficoLinha(registros, tipo, {
+        titulo: `Todos os algoritmos: tempo x tamanho, dataset ${tipo}, escala log`,
+      })
+    );
+    destinoLinha.appendChild(renderGraficoBarrasMaiorTamanho(registros, tipo));
+  } catch (err) {
+    destinoLinha.innerHTML = `<span class="aviso">Erro ao carregar tempos: ${err.message}</span>`;
   }
 }
 
@@ -354,8 +844,16 @@ async function main() {
       document.querySelectorAll(".painel").forEach((p) => p.classList.remove("ativa"));
       btn.classList.add("ativa");
       document.querySelector(`.painel[data-aba="${btn.dataset.aba}"]`).classList.add("ativa");
+      if (btn.dataset.aba === "comparativo") carregarComparativo();
     });
   });
+
+  document
+    .getElementById("btn-atualizar-comparativo")
+    .addEventListener("click", () => carregarComparativo());
+  document
+    .getElementById("select-tipo-comparativo")
+    .addEventListener("change", () => carregarComparativo());
 }
 
 main().catch((err) => {

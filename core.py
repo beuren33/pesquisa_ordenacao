@@ -30,6 +30,14 @@ _lib.bubble_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
 _lib.bubble_sort.restype = None
 _lib.insertion_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
 _lib.insertion_sort.restype = None
+_lib.shell_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.shell_sort.restype = None
+_lib.selection_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.selection_sort.restype = None
+_lib.quick_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.quick_sort.restype = None
+_lib.merge_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.merge_sort.restype = None
 
 
 def listar_arquivos():
@@ -121,6 +129,26 @@ def insertion_sort(numeros):
     return _ordenar(numeros, _lib.insertion_sort)
 
 
+def shell_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.shell_sort)
+
+
+def selection_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.selection_sort)
+
+
+def quick_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.quick_sort)
+
+
+def merge_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.merge_sort)
+
+
 def iniciar_ordenacao(numeros, algoritmo):
     """Inicia bubble_sort/insertion_sort em background numa thread separada,
     sem esperar terminar. Retorna (thread, buffer, resultado):
@@ -134,7 +162,14 @@ def iniciar_ordenacao(numeros, algoritmo):
     insertion_sort de sempre) — so orquestra a chamada numa thread pra
     permitir observar o array enquanto ele ainda esta sendo ordenado.
     """
-    func_asm = _lib.bubble_sort if algoritmo == "bubble" else _lib.insertion_sort
+    func_asm = {
+        "bubble": _lib.bubble_sort,
+        "insertion": _lib.insertion_sort,
+        "shell": _lib.shell_sort,
+        "selection": _lib.selection_sort,
+        "quick": _lib.quick_sort,
+        "merge": _lib.merge_sort,
+    }[algoritmo]
     n = len(numeros)
     buffer = (ctypes.c_int32 * n)(*numeros)
     resultado = {}
