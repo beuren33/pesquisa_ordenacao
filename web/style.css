@@ -1,0 +1,258 @@
+:root {
+  --bg: #0f1420;
+  --bg-cartao: #171d2c;
+  --borda: #2a3247;
+  --texto: #e6e9f0;
+  --texto-fraco: #8a91a8;
+  --acento: #5ea1ff;
+  --acento-2: #7fe0a8;
+  --alerta: #ff8a65;
+  --barra: #3a4a6b;
+  --barra-comparando: #ffb74d;
+  --barra-trocando: #ff6b6b;
+  --barra-ordenada: #7fe0a8;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--texto);
+}
+
+header {
+  padding: 28px 32px 8px;
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+  padding: 16px 32px 0;
+  border-bottom: 1px solid var(--borda);
+}
+
+.aba-btn {
+  background: none;
+  border: none;
+  color: var(--texto-fraco);
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.aba-btn:hover {
+  color: var(--texto);
+}
+
+.aba-btn.ativa {
+  color: var(--acento);
+  border-bottom-color: var(--acento);
+}
+
+#conteudo {
+  padding: 24px 32px 48px;
+}
+
+.painel {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 1100px;
+}
+
+.painel.ativa {
+  display: grid;
+}
+
+@media (max-width: 860px) {
+  .painel.ativa { grid-template-columns: 1fr; }
+}
+
+.cartao {
+  background: var(--bg-cartao);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+}
+
+.cartao h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  color: var(--texto);
+}
+
+.descricao-exemplo {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+}
+
+.animacao {
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  border-bottom: 1px solid var(--borda);
+}
+
+.barras {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.barra {
+  position: absolute;
+  bottom: 0;
+  width: 16%;
+  background: var(--barra);
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  color: var(--texto);
+  font-size: 0.8rem;
+  padding-top: 4px;
+  transition: left 0.35s ease, background-color 0.2s ease;
+}
+
+.barra.comparando { background: var(--barra-comparando); }
+.barra.trocando { background: var(--barra-trocando); }
+.barra.ordenada { background: var(--barra-ordenada); }
+
+.linha-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--texto-fraco);
+}
+
+.label-arquivo {
+  flex: 1;
+  min-width: 200px;
+}
+
+select {
+  background: var(--bg);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+  min-width: 160px;
+}
+
+.btn {
+  background: var(--barra);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.btn:hover:not(:disabled) { background: #46567c; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primario {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #0f1420;
+  font-weight: 600;
+  width: 100%;
+  padding: 12px;
+}
+
+.btn-primario:hover:not(:disabled) { background: #7fb4ff; }
+
+.status-gerar {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+  min-height: 1.2em;
+}
+
+.cronometro-box {
+  margin-top: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cronometro-label {
+  color: var(--texto-fraco);
+  font-size: 0.85rem;
+}
+
+.cronometro-valor {
+  font-family: "Consolas", monospace;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--acento-2);
+}
+
+.cronometro-valor.rodando {
+  color: var(--acento);
+}
+
+.progresso-box {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progresso-barra {
+  flex: 1;
+  height: 8px;
+  background: var(--barra);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progresso-preenchimento {
+  height: 100%;
+  width: 0%;
+  background: var(--acento);
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+
+.progresso-valor {
+  font-family: "Consolas", monospace;
+  font-size: 0.85rem;
+  color: var(--texto-fraco);
+  min-width: 3.2em;
+  text-align: right;
+}
+
+.resultado {
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--texto-fraco);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.resultado .aviso {
+  color: var(--alerta);
+}

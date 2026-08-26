@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ordenacao em Assembly</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>Ordenacao em Assembly</h1>
+</header>
+
+<nav class="abas">
+  <button class="aba-btn ativa" data-aba="bubble">Bubble Sort</button>
+  <button class="aba-btn" data-aba="insertion">Insertion Sort</button>
+</nav>
+
+<template id="template-painel">
+  <section class="painel">
+    <div class="coluna-esquerda">
+      <div class="cartao">
+        <h2>Exemplo visual</h2>
+        <p class="descricao-exemplo"></p>
+        <div class="animacao">
+          <div class="barras"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coluna-direita">
+      <div class="cartao">
+        <h2>1. Gerar dataset</h2>
+        <div class="linha-form">
+          <label>
+            Tamanho
+            <select class="select-tamanho"></select>
+          </label>
+          <label>
+            Tipo
+            <select class="select-tipo"></select>
+          </label>
+          <button class="btn btn-gerar">Gerar dataset</button>
+        </div>
+        <p class="status-gerar"></p>
+      </div>
+
+      <div class="cartao">
+        <h2>2. Escolher dataset</h2>
+        <div class="linha-form">
+          <label class="label-arquivo">
+            Arquivo
+            <select class="select-arquivo"></select>
+          </label>
+          <button class="btn btn-atualizar" title="Atualizar lista">Atualizar</button>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <h2>3. Ordenar</h2>
+        <button class="btn btn-primario btn-ordenar">Ordenar</button>
+        <div class="cronometro-box">
+          <span class="cronometro-label">Tempo:</span>
+          <span class="cronometro-valor">00:00.000 min</span>
+        </div>
+        <div class="progresso-box">
+          <div class="progresso-barra">
+            <div class="progresso-preenchimento"></div>
+          </div>
+          <span class="progresso-valor">0%</span>
+        </div>
+        <div class="resultado"></div>
+      </div>
+    </div>
+  </section>
+</template>
+
+<main id="conteudo"></main>
+
+<script src="/app.js"></script>
+</body>
+</html>
