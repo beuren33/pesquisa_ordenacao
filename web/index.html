@@ -14,21 +14,16 @@
 <nav class="abas">
   <button class="aba-btn ativa" data-aba="bubble">Bubble Sort</button>
   <button class="aba-btn" data-aba="insertion">Insertion Sort</button>
+  <button class="aba-btn" data-aba="shell">Shell Sort</button>
+  <button class="aba-btn" data-aba="selection">Selection Sort</button>
+  <button class="aba-btn" data-aba="quick">Quick Sort</button>
+  <button class="aba-btn" data-aba="merge">Merge Sort</button>
+  <button class="aba-btn" data-aba="comparativo">Comparativo</button>
 </nav>
 
 <template id="template-painel">
   <section class="painel">
-    <div class="coluna-esquerda">
-      <div class="cartao">
-        <h2>Exemplo visual</h2>
-        <p class="descricao-exemplo"></p>
-        <div class="animacao">
-          <div class="barras"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="coluna-direita">
+    <div class="linha-topo">
       <div class="cartao">
         <h2>1. Gerar dataset</h2>
         <div class="linha-form">
@@ -63,19 +58,46 @@
           <span class="cronometro-label">Tempo:</span>
           <span class="cronometro-valor">00:00.000 min</span>
         </div>
-        <div class="progresso-box">
-          <div class="progresso-barra">
-            <div class="progresso-preenchimento"></div>
-          </div>
-          <span class="progresso-valor">0%</span>
-        </div>
         <div class="resultado"></div>
+      </div>
+    </div>
+
+    <div class="progresso-box">
+      <div class="progresso-barra">
+        <div class="progresso-preenchimento"></div>
+      </div>
+      <span class="progresso-valor">0%</span>
+    </div>
+
+    <div class="cartao cartao-visual">
+      <h2>Exemplo visual</h2>
+      <p class="descricao-exemplo"></p>
+      <div class="animacao">
+        <div class="barras"></div>
       </div>
     </div>
   </section>
 </template>
 
 <main id="conteudo"></main>
+
+<section class="painel painel-comparativo" data-aba="comparativo">
+  <div class="cartao">
+    <h2>Comparativo entre algoritmos</h2>
+    <div class="linha-form">
+      <label>
+        Tipo de dataset
+        <select id="select-tipo-comparativo">
+          <option value="ordenado">ordenado</option>
+          <option value="invertido">invertido</option>
+          <option value="randomico" selected>randomico</option>
+        </select>
+      </label>
+      <button class="btn btn-atualizar" id="btn-atualizar-comparativo">Atualizar</button>
+    </div>
+    <div id="grafico-linha-comparativo"></div>
+  </div>
+</section>
 
 <script src="/app.js"></script>
 </body>

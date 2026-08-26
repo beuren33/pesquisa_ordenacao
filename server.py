@@ -30,6 +30,35 @@ CONTENT_TYPES = {
 }
 
 NOME_RE = re.compile(r"^(ordenado|invertido|randomico)_(\d+)\.txt$")
+LINHA_TEMPOS_RE = re.compile(
+    r"^\|\s*(\w+)\s*\|\s*(\w+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*(.+?)\s*\|$"
+)
+
+
+def _ler_tempos():
+    """Le resultados/tempos.md e devolve os registros como lista de dicts."""
+    registros = []
+    if not os.path.isfile(core.TEMPOS_MD):
+        return registros
+    with open(core.TEMPOS_MD) as f:
+        for linha in f:
+            m = LINHA_TEMPOS_RE.match(linha.strip())
+            if not m:
+                continue
+            algoritmo, tipo, tamanho, tempo_s, tempo_min, quando = m.groups()
+            if algoritmo == "Algoritmo":
+                continue  # linha de cabecalho
+            registros.append(
+                {
+                    "algoritmo": algoritmo,
+                    "tipo": tipo,
+                    "tamanho": int(tamanho.replace(".", "")),
+                    "tempo_s": float(tempo_s),
+                    "tempo_min": float(tempo_min),
+                    "quando": quando,
+                }
+            )
+    return registros
 
 jobs = {}
 jobs_lock = threading.Lock()
@@ -130,6 +159,10 @@ class Handler(BaseHTTPRequestHandler):
             self._send_json({"arquivos": arquivos})
             return
 
+        if self.path == "/api/tempos":
+            self._send_json({"registros": _ler_tempos()})
+            return
+
         if self.path.startswith("/api/status"):
             qs = self.path.split("?", 1)[1] if "?" in self.path else ""
             params = dict(p.split("=", 1) for p in qs.split("&") if "=" in p)
@@ -195,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/ordenar":
             arquivo = body.get("arquivo")
             algoritmo = body.get("algoritmo")
-            if algoritmo not in ("bubble", "insertion"):
+            if algoritmo not in ("bubble", "insertion", "shell", "selection", "quick", "merge"):
                 self._send_error_json("algoritmo invalido")
                 return
             try:
