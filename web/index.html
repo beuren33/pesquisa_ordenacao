@@ -95,6 +95,28 @@
     </div>
     <div id="grafico-linha-comparativo"></div>
   </div>
+
+  <div class="cartao">
+    <h2>Comparar algoritmos escolhidos</h2>
+    <div class="linha-form">
+      <label>
+        Algoritmos
+        <div class="dropdown-multi" id="filtro-algoritmos-comparativo">
+          <button type="button" class="dropdown-multi-btn">
+            <span class="dropdown-multi-rotulo">4 algoritmos</span>
+            <span class="dropdown-multi-seta">▾</span>
+          </button>
+          <div class="dropdown-multi-lista" hidden>
+            <label><input type="checkbox" value="bubble" checked> Bubble Sort</label>
+            <label><input type="checkbox" value="insertion" checked> Insertion Sort</label>
+            <label><input type="checkbox" value="shell" checked> Shell Sort</label>
+            <label><input type="checkbox" value="selection" checked> Selection Sort</label>
+          </div>
+        </div>
+      </label>
+    </div>
+    <div id="grafico-filtro-comparativo"></div>
+  </div>
 </section>
 
 <script src="/app.js"></script>

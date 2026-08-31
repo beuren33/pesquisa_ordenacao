@@ -6,9 +6,9 @@
   --acento: #5ea1ff;
   --alerta: #ff8a65;
   --barra: #2f3b56;
-  --barra-comparando: #ffb74d;
-  --barra-trocando: #ff6b6b;
-  --barra-ordenada: #7fe0a8;
+  --barra-comparando: #5a6785;
+  --barra-trocando: #4a90e2;
+  --barra-ordenada: #3fce7c;
 }
 
 * { box-sizing: border-box; }
@@ -127,19 +127,20 @@ header h1 {
 }
 
 .grafico-svg .grade line {
-  stroke: var(--borda, #333);
+  stroke: #ffffff;
   stroke-width: 1;
+  stroke-opacity: 0.22;
   stroke-dasharray: 3 3;
 }
 
 .grafico-svg .moldura {
-  stroke: var(--borda);
+  stroke: #ffffff;
   stroke-width: 1;
-  stroke-opacity: 0.6;
+  stroke-opacity: 0.45;
 }
 
 .grafico-svg text.barra-valor {
-  font-size: 13px;
+  font-size: 10px;
   fill: var(--texto, #e6e9f0);
 }
 
@@ -236,6 +237,7 @@ label {
   color: var(--texto);
 }
 
+
 .label-arquivo {
   flex: 1;
   min-width: 200px;
@@ -249,6 +251,71 @@ select {
   padding: 8px 10px;
   font-size: 1.05rem;
   min-width: 160px;
+}
+
+.dropdown-multi {
+  position: relative;
+  min-width: 220px;
+}
+
+.dropdown-multi-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--bg);
+  color: var(--texto);
+  border: 1px solid var(--borda);
+  border-radius: 2px;
+  padding: 8px 10px;
+  font-size: 1.05rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dropdown-multi-btn:hover {
+  border-color: var(--acento);
+}
+
+.dropdown-multi-seta {
+  font-size: 0.8rem;
+  color: var(--texto);
+  opacity: 0.7;
+}
+
+.dropdown-multi-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 10;
+  min-width: 100%;
+  background: var(--bg-cartao);
+  border: 1px solid var(--borda);
+  border-radius: 2px;
+  padding: 6px 0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dropdown-multi-lista label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dropdown-multi-lista label:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-multi-lista input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--acento);
+  cursor: pointer;
 }
 
 .btn {
