@@ -28,18 +28,6 @@ const ALGORITMOS = {
       "Encontra o menor elemento restante e o troca pra posicao atual, " +
       "avancando da esquerda pra direita.",
   },
-  quick: {
-    titulo: "Quick Sort",
-    descricaoExemplo:
-      "Escolhe um pivo, particiona o array em menores/maiores que ele " +
-      "e repete recursivamente em cada metade.",
-  },
-  merge: {
-    titulo: "Merge Sort",
-    descricaoExemplo:
-      "Divide o array ao meio recursivamente e depois intercala " +
-      "(merge) as metades ja ordenadas de volta.",
-  },
 };
 
 const LIMITE_AVISO = 700_000;
@@ -160,85 +148,11 @@ function* passosSelection(arr) {
   yield { tipo: "fixar", indice: n - 1 };
 }
 
-function* passosQuick(arr) {
-  const a = arr.slice();
-
-  function* particionar(lo, hi) {
-    const pivot = a[hi];
-    let i = lo - 1;
-    for (let j = lo; j < hi; j++) {
-      yield { tipo: "comparar", indices: [j, hi] };
-      if (a[j] <= pivot) {
-        i++;
-        if (i !== j) {
-          [a[i], a[j]] = [a[j], a[i]];
-          yield { tipo: "trocar", indices: [i, j], estado: a.slice() };
-        }
-      }
-    }
-    if (i + 1 !== hi) {
-      [a[i + 1], a[hi]] = [a[hi], a[i + 1]];
-      yield { tipo: "trocar", indices: [i + 1, hi], estado: a.slice() };
-    }
-    return i + 1;
-  }
-
-  function* ordenar(lo, hi) {
-    if (lo >= hi) {
-      if (lo === hi) yield { tipo: "fixar", indice: lo };
-      return;
-    }
-    const p = yield* particionar(lo, hi);
-    yield { tipo: "fixar", indice: p };
-    yield* ordenar(lo, p - 1);
-    yield* ordenar(p + 1, hi);
-  }
-
-  yield* ordenar(0, a.length - 1);
-  for (let k = 0; k < a.length; k++) yield { tipo: "fixar", indice: k };
-}
-
-function* passosMerge(arr) {
-  const a = arr.slice();
-  const n = a.length;
-  const temp = new Array(n);
-
-  function* mesclar(lo, mid, hi) {
-    let i = lo;
-    let j = mid + 1;
-    let k = lo;
-    while (i <= mid && j <= hi) {
-      yield { tipo: "comparar", indices: [i, j] };
-      if (a[i] <= a[j]) temp[k++] = a[i++];
-      else temp[k++] = a[j++];
-    }
-    while (i <= mid) temp[k++] = a[i++];
-    while (j <= hi) temp[k++] = a[j++];
-    for (let x = lo; x <= hi; x++) a[x] = temp[x];
-    const destaque = [];
-    for (let x = lo; x <= hi; x++) destaque.push(x);
-    yield { tipo: "definir", estado: a.slice(), destaque };
-  }
-
-  function* ordenar(lo, hi) {
-    if (lo >= hi) return;
-    const mid = lo + Math.floor((hi - lo) / 2);
-    yield* ordenar(lo, mid);
-    yield* ordenar(mid + 1, hi);
-    yield* mesclar(lo, mid, hi);
-  }
-
-  yield* ordenar(0, n - 1);
-  for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
-}
-
 const GERADORES_PASSOS = {
   bubble: passosBubble,
   insertion: passosInsertion,
   shell: passosShell,
   selection: passosSelection,
-  quick: passosQuick,
-  merge: passosMerge,
 };
 
 class Animacao {
@@ -488,8 +402,6 @@ const CORES_ALGORITMO = {
   insertion: "#5ea1ff",
   shell: "#7fe0a8",
   selection: "#d17fe0",
-  quick: "#e0d17f",
-  merge: "#7fc8e0",
 };
 
 const NOMES_ALGORITMO = {
@@ -497,11 +409,9 @@ const NOMES_ALGORITMO = {
   insertion: "Insertion Sort",
   shell: "Shell Sort",
   selection: "Selection Sort",
-  quick: "Quick Sort",
-  merge: "Merge Sort",
 };
 
-const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection", "quick", "merge"];
+const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection"];
 
 function criarSvg(tag, attrs) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -808,7 +718,7 @@ async function carregarComparativo() {
     destinoLinha.innerHTML = "";
     destinoLinha.appendChild(
       renderGraficoLinha(registros, tipo, {
-        titulo: `Todos os algoritmos: tempo x tamanho, dataset ${tipo}, escala log`,
+        titulo: `Todos os algoritmos: tempo x tamanho`,
       })
     );
     destinoLinha.appendChild(renderGraficoBarrasMaiorTamanho(registros, tipo));
