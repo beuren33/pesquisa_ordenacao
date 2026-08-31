@@ -72,14 +72,6 @@ def executar_selection_sort():
     _executar_ordenacao(core.selection_sort, "Selection Sort")
 
 
-def executar_quick_sort():
-    _executar_ordenacao(core.quick_sort, "Quick Sort")
-
-
-def executar_merge_sort():
-    _executar_ordenacao(core.merge_sort, "Merge Sort")
-
-
 def menu():
     while True:
         print("\n=== Menu Principal ===")
@@ -90,9 +82,7 @@ def menu():
         print("3) Ordenar com Insertion Sort")
         print("4) Ordenar com Shell Sort")
         print("5) Ordenar com Selection Sort")
-        print("6) Ordenar com Quick Sort")
-        print("7) Ordenar com Merge Sort")
-        print("8) Sair")
+        print("6) Sair")
 
         opcao = input("Escolha uma opcao: ").strip()
         if opcao == "1":
@@ -106,10 +96,6 @@ def menu():
         elif opcao == "5":
             executar_selection_sort()
         elif opcao == "6":
-            executar_quick_sort()
-        elif opcao == "7":
-            executar_merge_sort()
-        elif opcao == "8":
             print("Ate mais.")
             break
         else:
