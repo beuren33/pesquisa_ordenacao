@@ -28,6 +28,18 @@ const ALGORITMOS = {
       "Encontra o menor elemento restante e o troca pra posicao atual, " +
       "avancando da esquerda pra direita.",
   },
+  quick: {
+    titulo: "Quick Sort",
+    descricaoExemplo:
+      "Escolhe um pivo, particiona o array em menores/maiores que ele " +
+      "e repete recursivamente em cada metade.",
+  },
+  merge: {
+    titulo: "Merge Sort",
+    descricaoExemplo:
+      "Divide o array ao meio recursivamente e depois intercala " +
+      "(merge) as metades ja ordenadas de volta.",
+  },
 };
 
 const LIMITE_AVISO = 700_000;
@@ -148,11 +160,85 @@ function* passosSelection(arr) {
   yield { tipo: "fixar", indice: n - 1 };
 }
 
+function* passosQuick(arr) {
+  const a = arr.slice();
+
+  function* particionar(lo, hi) {
+    const pivot = a[hi];
+    let i = lo - 1;
+    for (let j = lo; j < hi; j++) {
+      yield { tipo: "comparar", indices: [j, hi] };
+      if (a[j] <= pivot) {
+        i++;
+        if (i !== j) {
+          [a[i], a[j]] = [a[j], a[i]];
+          yield { tipo: "trocar", indices: [i, j], estado: a.slice() };
+        }
+      }
+    }
+    if (i + 1 !== hi) {
+      [a[i + 1], a[hi]] = [a[hi], a[i + 1]];
+      yield { tipo: "trocar", indices: [i + 1, hi], estado: a.slice() };
+    }
+    return i + 1;
+  }
+
+  function* ordenar(lo, hi) {
+    if (lo >= hi) {
+      if (lo === hi) yield { tipo: "fixar", indice: lo };
+      return;
+    }
+    const p = yield* particionar(lo, hi);
+    yield { tipo: "fixar", indice: p };
+    yield* ordenar(lo, p - 1);
+    yield* ordenar(p + 1, hi);
+  }
+
+  yield* ordenar(0, a.length - 1);
+  for (let k = 0; k < a.length; k++) yield { tipo: "fixar", indice: k };
+}
+
+function* passosMerge(arr) {
+  const a = arr.slice();
+  const n = a.length;
+  const temp = new Array(n);
+
+  function* mesclar(lo, mid, hi) {
+    let i = lo;
+    let j = mid + 1;
+    let k = lo;
+    while (i <= mid && j <= hi) {
+      yield { tipo: "comparar", indices: [i, j] };
+      if (a[i] <= a[j]) temp[k++] = a[i++];
+      else temp[k++] = a[j++];
+    }
+    while (i <= mid) temp[k++] = a[i++];
+    while (j <= hi) temp[k++] = a[j++];
+    for (let x = lo; x <= hi; x++) a[x] = temp[x];
+    const destaque = [];
+    for (let x = lo; x <= hi; x++) destaque.push(x);
+    yield { tipo: "definir", estado: a.slice(), destaque };
+  }
+
+  function* ordenar(lo, hi) {
+    if (lo >= hi) return;
+    const mid = lo + Math.floor((hi - lo) / 2);
+    yield* ordenar(lo, mid);
+    yield* ordenar(mid + 1, hi);
+    yield* mesclar(lo, mid, hi);
+  }
+
+  yield* ordenar(0, n - 1);
+  for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
+}
+
 const GERADORES_PASSOS = {
   bubble: passosBubble,
   insertion: passosInsertion,
   shell: passosShell,
   selection: passosSelection,
+  quick: passosQuick,
+  merge: passosMerge,
 };
 
 class Animacao {
@@ -402,6 +488,8 @@ const CORES_ALGORITMO = {
   insertion: "#1e88e5",
   shell: "#43a047",
   selection: "#fdd835",
+  quick: "#8e24aa",
+  merge: "#fb8c00",
 };
 
 const NOMES_ALGORITMO = {
@@ -409,14 +497,41 @@ const NOMES_ALGORITMO = {
   insertion: "Insertion Sort",
   shell: "Shell Sort",
   selection: "Selection Sort",
+  quick: "Quick Sort",
+  merge: "Merge Sort",
 };
 
-const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection"];
+const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection", "quick", "merge"];
 
 function criarSvg(tag, attrs) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
   return el;
+}
+
+// Caixa flutuante de tooltip, uma por grafico, reaproveitada por todos os
+// pontos -- mostra o tempo individual de quem o mouse esta em cima.
+function criarTooltip(container) {
+  const el = document.createElement("div");
+  el.className = "grafico-tooltip";
+  el.hidden = true;
+  container.appendChild(el);
+
+  function mostrar(ev, texto) {
+    el.textContent = texto;
+    el.hidden = false;
+    mover(ev);
+  }
+  function mover(ev) {
+    const rect = container.getBoundingClientRect();
+    el.style.left = `${ev.clientX - rect.left + 14}px`;
+    el.style.top = `${ev.clientY - rect.top + 14}px`;
+  }
+  function esconder() {
+    el.hidden = true;
+  }
+
+  return { mostrar, mover, esconder };
 }
 
 function renderLegenda(algoritmos = ORDEM_ALGORITMOS) {
@@ -447,7 +562,9 @@ function ultimoRegistroPorAlgoritmoTamanho(registros, tipo) {
 }
 
 function formatarTempo(tempo) {
-  return tempo >= 1 ? `${tempo.toFixed(2)}s` : `${(tempo * 1000).toFixed(1)}ms`;
+  if (tempo < 1) return `${(tempo * 1000).toFixed(1)}ms`;
+  if (tempo >= 60) return `${tempo.toFixed(2)}s (${(tempo / 60).toFixed(2)} min)`;
+  return `${tempo.toFixed(2)}s`;
 }
 
 // Grafico de linha generico: tamanho do dataset (X) x tempo (Y), uma linha
@@ -459,7 +576,7 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
 
   const largura = 1400;
   const alturaGrafico = 520;
-  const margemEsq = 90;
+  const margemEsq = 150;
   const margemDir = 32;
   const margemBaixo = 52;
   const margemTopo = 24;
@@ -490,6 +607,10 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
     const frac = (Math.log10(t) - logMin) / (logMax - logMin || 1);
     return margemTopo + alturaGrafico - frac * alturaGrafico;
   }
+
+  const container = document.createElement("div");
+  container.className = "grafico-tamanho";
+  const tooltip = criarTooltip(container);
 
   const svg = criarSvg("svg", {
     class: "grafico-svg",
@@ -573,16 +694,16 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
         cy: y(p.tempo),
         r: 4,
         fill: CORES_ALGORITMO[algoritmo],
+        class: "ponto-grafico",
       });
-      const tip = criarSvg("title", {});
-      tip.textContent = `${NOMES_ALGORITMO[algoritmo]}, ${formatarNumero(p.tamanho)}, ${formatarTempo(p.tempo)}`;
-      ponto.appendChild(tip);
+      const texto = `${formatarNumero(p.tamanho)}: ${formatarTempo(p.tempo)}`;
+      ponto.addEventListener("mouseenter", (ev) => tooltip.mostrar(ev, texto));
+      ponto.addEventListener("mousemove", (ev) => tooltip.mover(ev));
+      ponto.addEventListener("mouseleave", () => tooltip.esconder());
       svg.appendChild(ponto);
     });
   });
 
-  const container = document.createElement("div");
-  container.className = "grafico-tamanho";
   const titulo = document.createElement("h3");
   titulo.textContent = tituloTxt ?? `Tempo x tamanho do dataset ${tipo}`;
   container.appendChild(titulo);
@@ -606,7 +727,7 @@ function renderGraficoBarrasMaiorTamanho(registros, tipo) {
 
   const largura = 1400;
   const alturaGrafico = 460;
-  const margemEsq = 90;
+  const margemEsq = 150;
   const margemDir = 32;
   const margemBaixo = 48;
   const margemTopo = 24;
@@ -725,7 +846,7 @@ function renderGraficoBarrasAgrupadas(registros, tipo, algoritmos) {
 
   const largura = 1400;
   const alturaGrafico = 460;
-  const margemEsq = 90;
+  const margemEsq = 150;
   const margemDir = 32;
   const margemBaixo = 48;
   const margemTopo = 24;
