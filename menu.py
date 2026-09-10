@@ -39,7 +39,8 @@ def _executar_ordenacao(func, nome_algoritmo):
         return
 
     n = len(estado["numeros"])
-    if n >= 700_000:
+    quadratico = nome_algoritmo in ("Bubble Sort", "Insertion Sort", "Selection Sort")
+    if quadratico and n >= 700_000:
         confirmar = input(
             f"\nAviso: {nome_algoritmo} e O(n^2). Com {n:,} numeros isso pode "
             "demorar muito (minutos a horas). Continuar? (s/N): ".replace(",", ".")
@@ -72,6 +73,22 @@ def executar_selection_sort():
     _executar_ordenacao(core.selection_sort, "Selection Sort")
 
 
+def executar_quick_sort():
+    _executar_ordenacao(core.quick_sort, "Quick Sort")
+
+
+def executar_merge_sort():
+    _executar_ordenacao(core.merge_sort, "Merge Sort")
+
+
+def executar_radix_sort():
+    _executar_ordenacao(core.radix_sort, "Radix Sort")
+
+
+def executar_heap_sort():
+    _executar_ordenacao(core.heap_sort, "Heap Sort")
+
+
 def menu():
     while True:
         print("\n=== Menu Principal ===")
@@ -82,7 +99,11 @@ def menu():
         print("3) Ordenar com Insertion Sort")
         print("4) Ordenar com Shell Sort")
         print("5) Ordenar com Selection Sort")
-        print("6) Sair")
+        print("6) Ordenar com Quick Sort")
+        print("7) Ordenar com Merge Sort")
+        print("8) Ordenar com Radix Sort")
+        print("9) Ordenar com Heap Sort")
+        print("10) Sair")
 
         opcao = input("Escolha uma opcao: ").strip()
         if opcao == "1":
@@ -96,6 +117,14 @@ def menu():
         elif opcao == "5":
             executar_selection_sort()
         elif opcao == "6":
+            executar_quick_sort()
+        elif opcao == "7":
+            executar_merge_sort()
+        elif opcao == "8":
+            executar_radix_sort()
+        elif opcao == "9":
+            executar_heap_sort()
+        elif opcao == "10":
             print("Ate mais.")
             break
         else:

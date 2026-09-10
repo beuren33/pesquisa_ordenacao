@@ -36,27 +36,30 @@ LINHA_TEMPOS_RE = re.compile(
 
 
 def _ler_tempos():
-    """Le resultados/tempos.md e devolve os registros como lista de dicts."""
+    """Le resultados/tempos.md e resultados/resultados_atividade2.md e
+    devolve os registros combinados (atividade 1 + atividade 2) como lista
+    de dicts."""
     registros = []
-    if not os.path.isfile(core.TEMPOS_MD):
-        return registros
-    with open(core.TEMPOS_MD) as f:
-        for linha in f:
-            m = LINHA_TEMPOS_RE.match(linha.strip())
-            if not m:
-                continue
-            algoritmo, tipo, tamanho, tempo_s, tempo_min, quando = m.groups()
-            if algoritmo == "Algoritmo":
-                continue  # linha de cabecalho
-            registros.append(
-                {
-                    "algoritmo": algoritmo,
-                    "tipo": tipo,
-                    "tamanho": int(tamanho.replace(".", "")),
-                    "tempo_s": float(tempo_s),
-                    "tempo_min": float(tempo_min),
-                    "quando": quando,
-                }
+    for caminho in (core.TEMPOS_MD, core.TEMPOS_MD_ATIVIDADE2):
+        if not os.path.isfile(caminho):
+            continue
+        with open(caminho) as f:
+            for linha in f:
+                m = LINHA_TEMPOS_RE.match(linha.strip())
+                if not m:
+                    continue
+                algoritmo, tipo, tamanho, tempo_s, tempo_min, quando = m.groups()
+                if algoritmo == "Algoritmo":
+                    continue  # linha de cabecalho
+                registros.append(
+                    {
+                        "algoritmo": algoritmo,
+                        "tipo": tipo,
+                        "tamanho": int(tamanho.replace(".", "")),
+                        "tempo_s": float(tempo_s),
+                        "tempo_min": float(tempo_min),
+                        "quando": quando,
+                    }
             )
     return registros
 
@@ -228,7 +231,10 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/ordenar":
             arquivo = body.get("arquivo")
             algoritmo = body.get("algoritmo")
-            if algoritmo not in ("bubble", "insertion", "shell", "selection", "quick", "merge"):
+            if algoritmo not in (
+                "bubble", "insertion", "shell", "selection", "quick", "merge",
+                "radix", "heap",
+            ):
                 self._send_error_json("algoritmo invalido")
                 return
             try:
