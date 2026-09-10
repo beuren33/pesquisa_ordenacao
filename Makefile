@@ -21,8 +21,14 @@ quick_sort.o: asm/quick_sort.asm
 merge_sort.o: asm/merge_sort.asm
 	$(ASM) -o merge_sort.o asm/merge_sort.asm
 
-libsort.so: bubble_sort.o insertion_sort.o shell_sort.o selection_sort.o quick_sort.o merge_sort.o
-	$(CC) -shared -o libsort.so bubble_sort.o insertion_sort.o shell_sort.o selection_sort.o quick_sort.o merge_sort.o
+radix_sort.o: asm/radix_sort.asm
+	$(ASM) -o radix_sort.o asm/radix_sort.asm
+
+heap_sort.o: asm/heap_sort.asm
+	$(ASM) -o heap_sort.o asm/heap_sort.asm
+
+libsort.so: bubble_sort.o insertion_sort.o shell_sort.o selection_sort.o quick_sort.o merge_sort.o radix_sort.o heap_sort.o
+	$(CC) -shared -o libsort.so bubble_sort.o insertion_sort.o shell_sort.o selection_sort.o quick_sort.o merge_sort.o radix_sort.o heap_sort.o
 
 clean:
 	rm -f *.o libsort.so

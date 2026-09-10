@@ -18,10 +18,18 @@ PASTA_ARQUIVOS = os.path.join(BASE_DIR, "datasets")
 PASTA_RESULTADOS = os.path.join(BASE_DIR, "resultados")
 LIBSORT_PATH = os.path.join(BASE_DIR, "libsort.so")
 TEMPOS_MD = os.path.join(PASTA_RESULTADOS, "tempos.md")
+TEMPOS_MD_ATIVIDADE2 = os.path.join(PASTA_RESULTADOS, "resultados_atividade2.md")
 
 _tempos_lock = threading.Lock()
 
-TAMANHOS_DISPONIVEIS = [700_000, 750_000, 800_000, 850_000, 900_000, 1_000_000]
+# Atividade 1: Bubble/Insertion/Shell/Selection, 700k-1M -> tempos.md
+# Atividade 2: Quick/Merge/Radix/Heap, 1M-2M -> resultados_atividade2.md
+ALGORITMOS_ATIVIDADE2 = {"quick", "merge", "radix", "heap"}
+
+TAMANHOS_DISPONIVEIS = [
+    700_000, 750_000, 800_000, 850_000, 900_000, 1_000_000,
+    1_150_000, 1_300_000, 1_350_000, 1_500_000, 2_000_000,
+]
 TIPOS_DISPONIVEIS = ["ordenado", "invertido", "randomico"]
 VALOR_MIN, VALOR_MAX = 0, 1_000_000_000  # cabe em int32
 
@@ -38,6 +46,10 @@ _lib.quick_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
 _lib.quick_sort.restype = None
 _lib.merge_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
 _lib.merge_sort.restype = None
+_lib.radix_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.radix_sort.restype = None
+_lib.heap_sort.argtypes = [ctypes.POINTER(ctypes.c_int32), ctypes.c_int64]
+_lib.heap_sort.restype = None
 
 
 def listar_arquivos():
@@ -92,19 +104,28 @@ def salvar_resultado(numeros, nome_arquivo_original, algoritmo):
 
 
 def registrar_tempo(algoritmo, tipo, tamanho, tempo_segundos):
-    """Acrescenta uma linha na tabela markdown resultados/tempos.md com o
-    tempo de execucao de uma ordenacao (um historico entre execucoes)."""
+    """Acrescenta uma linha na tabela markdown com o tempo de execucao de uma
+    ordenacao (um historico entre execucoes). Algoritmos da atividade 1
+    (Bubble/Insertion/Shell/Selection) vao pra resultados/tempos.md;
+    algoritmos da atividade 2 (Quick/Merge/Radix/Heap) vao pra
+    resultados/resultados_atividade2.md — arquivos separados."""
     os.makedirs(PASTA_RESULTADOS, exist_ok=True)
+    destino = TEMPOS_MD_ATIVIDADE2 if algoritmo in ALGORITMOS_ATIVIDADE2 else TEMPOS_MD
+    titulo = (
+        "# Resultados de execucao (atividade 2)\n\n"
+        if algoritmo in ALGORITMOS_ATIVIDADE2
+        else "# Tempos de execucao\n\n"
+    )
     quando = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     linha = (
         f"| {algoritmo} | {tipo} | {tamanho:,} | {tempo_segundos:.6f} | "
         f"{tempo_segundos / 60:.4f} | {quando} |\n".replace(",", ".")
     )
     with _tempos_lock:
-        novo = not os.path.isfile(TEMPOS_MD)
-        with open(TEMPOS_MD, "a") as f:
+        novo = not os.path.isfile(destino)
+        with open(destino, "a") as f:
             if novo:
-                f.write("# Tempos de execucao\n\n")
+                f.write(titulo)
                 f.write("| Algoritmo | Tipo | Tamanho | Tempo (s) | Tempo (min) | Quando |\n")
                 f.write("|---|---|---|---|---|---|\n")
             f.write(linha)
@@ -149,6 +170,16 @@ def merge_sort(numeros):
     return _ordenar(numeros, _lib.merge_sort)
 
 
+def radix_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.radix_sort)
+
+
+def heap_sort(numeros):
+    """Ordena (crescente) via NASM. Retorna (lista_ordenada, tempo_segundos)."""
+    return _ordenar(numeros, _lib.heap_sort)
+
+
 def iniciar_ordenacao(numeros, algoritmo):
     """Inicia bubble_sort/insertion_sort em background numa thread separada,
     sem esperar terminar. Retorna (thread, buffer, resultado):
@@ -169,6 +200,8 @@ def iniciar_ordenacao(numeros, algoritmo):
         "selection": _lib.selection_sort,
         "quick": _lib.quick_sort,
         "merge": _lib.merge_sort,
+        "radix": _lib.radix_sort,
+        "heap": _lib.heap_sort,
     }[algoritmo]
     n = len(numeros)
     buffer = (ctypes.c_int32 * n)(*numeros)

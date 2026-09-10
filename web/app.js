@@ -40,6 +40,18 @@ const ALGORITMOS = {
       "Divide o array ao meio recursivamente e depois intercala " +
       "(merge) as metades ja ordenadas de volta.",
   },
+  radix: {
+    titulo: "Radix Sort",
+    descricaoExemplo:
+      "Ordena por counting sort, digito a digito (do menos ao mais " +
+      "significativo), sem comparar os numeros entre si diretamente.",
+  },
+  heap: {
+    titulo: "Heap Sort",
+    descricaoExemplo:
+      "Monta um heap maximo com os numeros e vai tirando o maior " +
+      "elemento do topo pra posicao final, um de cada vez.",
+  },
 };
 
 const LIMITE_AVISO = 700_000;
@@ -232,6 +244,60 @@ function* passosMerge(arr) {
   for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
 }
 
+function* passosRadix(arr) {
+  const a = arr.slice();
+  const n = a.length;
+  const max = Math.max(...a);
+
+  for (let exp = 1; Math.floor(max / exp) > 0; exp *= 10) {
+    const baldes = Array.from({ length: 10 }, () => []);
+    for (let i = 0; i < n; i++) {
+      const digito = Math.floor(a[i] / exp) % 10;
+      baldes[digito].push(a[i]);
+    }
+    let k = 0;
+    for (let d = 0; d < 10; d++) {
+      for (const v of baldes[d]) a[k++] = v;
+    }
+    yield { tipo: "definir", estado: a.slice(), destaque: a.map((_, i) => i) };
+  }
+  for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
+}
+
+function* passosHeap(arr) {
+  const a = arr.slice();
+  const n = a.length;
+
+  function* siftDown(size, i) {
+    while (true) {
+      let largest = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      if (l < size) {
+        yield { tipo: "comparar", indices: [l, largest] };
+        if (a[l] > a[largest]) largest = l;
+      }
+      if (r < size) {
+        yield { tipo: "comparar", indices: [r, largest] };
+        if (a[r] > a[largest]) largest = r;
+      }
+      if (largest === i) return;
+      [a[i], a[largest]] = [a[largest], a[i]];
+      yield { tipo: "trocar", indices: [i, largest], estado: a.slice() };
+      i = largest;
+    }
+  }
+
+  for (let i = Math.floor(n / 2) - 1; i >= 0; i--) yield* siftDown(n, i);
+  for (let i = n - 1; i > 0; i--) {
+    [a[0], a[i]] = [a[i], a[0]];
+    yield { tipo: "trocar", indices: [0, i], estado: a.slice() };
+    yield { tipo: "fixar", indice: i };
+    yield* siftDown(i, 0);
+  }
+  yield { tipo: "fixar", indice: 0 };
+}
+
 const GERADORES_PASSOS = {
   bubble: passosBubble,
   insertion: passosInsertion,
@@ -239,6 +305,8 @@ const GERADORES_PASSOS = {
   selection: passosSelection,
   quick: passosQuick,
   merge: passosMerge,
+  radix: passosRadix,
+  heap: passosHeap,
 };
 
 class Animacao {
@@ -490,6 +558,8 @@ const CORES_ALGORITMO = {
   selection: "#fdd835",
   quick: "#8e24aa",
   merge: "#fb8c00",
+  radix: "#00acc1",
+  heap: "#d81b60",
 };
 
 const NOMES_ALGORITMO = {
@@ -499,9 +569,13 @@ const NOMES_ALGORITMO = {
   selection: "Selection Sort",
   quick: "Quick Sort",
   merge: "Merge Sort",
+  radix: "Radix Sort",
+  heap: "Heap Sort",
 };
 
-const ORDEM_ALGORITMOS = ["bubble", "insertion", "shell", "selection", "quick", "merge"];
+const ORDEM_ALGORITMOS = [
+  "bubble", "insertion", "shell", "selection", "quick", "merge", "radix", "heap",
+];
 
 function criarSvg(tag, attrs) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
