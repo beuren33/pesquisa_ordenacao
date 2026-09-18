@@ -1,11 +1,6 @@
-#!/usr/bin/env python3
-"""CLI de terminal para o menu principal (parte 2). Logica real esta em
-core.py — util para testar o backend sem depender da UI web."""
-
 import core
 
 estado = {"nome": None, "numeros": None}
-
 
 def ler_arquivo():
     arquivos = core.listar_arquivos()
@@ -32,7 +27,6 @@ def ler_arquivo():
     estado["numeros"] = numeros
     print(f"{len(numeros):,} numeros lidos em {t1 - t0:.3f}s".replace(",", "."))
 
-
 def _executar_ordenacao(func, nome_algoritmo):
     if estado["numeros"] is None:
         print("\nNenhum arquivo carregado. Use a opcao 1 primeiro.")
@@ -56,38 +50,29 @@ def _executar_ordenacao(func, nome_algoritmo):
     print(f"Primeiros 10: {resultado[:10]}")
     print(f"Ultimos 10:   {resultado[-10:]}")
 
-
 def executar_bubble_sort():
     _executar_ordenacao(core.bubble_sort, "Bubble Sort")
-
 
 def executar_insertion_sort():
     _executar_ordenacao(core.insertion_sort, "Insertion Sort")
 
-
 def executar_shell_sort():
     _executar_ordenacao(core.shell_sort, "Shell Sort")
-
 
 def executar_selection_sort():
     _executar_ordenacao(core.selection_sort, "Selection Sort")
 
-
 def executar_quick_sort():
     _executar_ordenacao(core.quick_sort, "Quick Sort")
-
 
 def executar_merge_sort():
     _executar_ordenacao(core.merge_sort, "Merge Sort")
 
-
 def executar_radix_sort():
     _executar_ordenacao(core.radix_sort, "Radix Sort")
 
-
 def executar_heap_sort():
     _executar_ordenacao(core.heap_sort, "Heap Sort")
-
 
 def menu():
     while True:
@@ -129,7 +114,6 @@ def menu():
             break
         else:
             print("Opcao invalida.")
-
 
 if __name__ == "__main__":
     menu()

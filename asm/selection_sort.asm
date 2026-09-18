@@ -1,7 +1,3 @@
-; selection_sort.asm
-; void selection_sort(int32_t *arr, int64_t n)
-; System V AMD64 ABI: rdi = arr, rsi = n
-
 section .text
 global selection_sort
 
@@ -10,29 +6,29 @@ selection_sort:
     mov rbp, rsp
 
     cmp rsi, 2
-    jl .done                   ; n < 2 -> nada a fazer
+    jl .done
 
-    xor rcx, rcx                ; i = 0
+    xor rcx, rcx
 
 .outer:
     mov rax, rsi
-    dec rax                     ; n - 1
+    dec rax
     cmp rcx, rax
-    jge .done                   ; i >= n-1 -> done
+    jge .done
 
-    mov r8, rcx                 ; min_idx = i
+    mov r8, rcx
     mov r9, rcx
-    inc r9                      ; j = i + 1
+    inc r9
 
 .inner:
     cmp r9, rsi
     jge .after_inner
 
-    mov edx, [rdi + r9*4]       ; arr[j]
-    mov eax, [rdi + r8*4]       ; arr[min_idx]
+    mov edx, [rdi + r9*4]
+    mov eax, [rdi + r8*4]
     cmp edx, eax
     jge .no_update
-    mov r8, r9                  ; min_idx = j
+    mov r8, r9
 
 .no_update:
     inc r9

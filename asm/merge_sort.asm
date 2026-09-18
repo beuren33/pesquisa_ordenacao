@@ -1,8 +1,3 @@
-; merge_sort.asm
-; void merge_sort(int32_t *arr, int64_t n)
-; System V AMD64 ABI: rdi = arr, rsi = n
-; Mergesort top-down recursivo, com buffer temporario alocado via malloc.
-
 extern malloc
 extern free
 
@@ -11,28 +6,28 @@ global merge_sort
 
 merge_sort:
     cmp rsi, 2
-    jl .done                    ; n < 2 -> nada a fazer
+    jl .done
 
     push rbp
     mov rbp, rsp
     push rbx
     push r12
     push r13
-    sub rsp, 8                   ; padding p/ alinhar stack antes do call malloc
+    sub rsp, 8
 
-    mov rbx, rdi                 ; arr
-    mov r12, rsi                 ; n
+    mov rbx, rdi
+    mov r12, rsi
 
     mov rdi, r12
-    shl rdi, 2                   ; size = n * 4
+    shl rdi, 2
     call malloc wrt ..plt
-    mov r13, rax                 ; temp buffer
+    mov r13, rax
 
     mov rdi, rbx
     mov rsi, r13
-    xor rdx, rdx                 ; lo = 0
+    xor rdx, rdx
     mov rcx, r12
-    dec rcx                       ; hi = n - 1
+    dec rcx
     call .ms_rec
 
     mov rdi, r13
@@ -46,7 +41,6 @@ merge_sort:
 .done:
     ret
 
-; .ms_rec(arr=rdi, temp=rsi, lo=rdx, hi=rcx) -- recursivo
 .ms_rec:
     push rbp
     mov rbp, rsp
@@ -56,19 +50,19 @@ merge_sort:
     push r14
     push r15
 
-    mov rbx, rdi                 ; arr
-    mov r12, rsi                 ; temp
-    mov r13, rdx                 ; lo
-    mov r14, rcx                 ; hi
+    mov rbx, rdi
+    mov r12, rsi
+    mov r13, rdx
+    mov r14, rcx
 
     cmp r13, r14
-    jge .ms_done                  ; lo >= hi -> nada a fazer
+    jge .ms_done
 
     mov rax, r14
     sub rax, r13
     sar rax, 1
     add rax, r13
-    mov r15, rax                  ; mid
+    mov r15, rax
 
     mov rdi, rbx
     mov rsi, r12
@@ -98,12 +92,11 @@ merge_sort:
     pop rbp
     ret
 
-; .ms_merge(arr=rdi, temp=rsi, lo=rdx, mid=rcx, hi=r8)
 .ms_merge:
-    mov r9, rdx                   ; i = lo
+    mov r9, rdx
     mov r10, rcx
-    inc r10                        ; j = mid + 1
-    mov r11, rdx                   ; k = lo
+    inc r10
+    mov r11, rdx
 
 .merge_loop:
     cmp r9, rcx
@@ -151,7 +144,7 @@ merge_sort:
     jle .merge_right_copy
 
 .merge_writeback:
-    mov r9, rdx                    ; x = lo
+    mov r9, rdx
 .wb_loop:
     cmp r9, r8
     jg .wb_done

@@ -1,15 +1,3 @@
-#!/usr/bin/env python3
-"""Servidor web da interface (parte 3). So expoe core.py via HTTP.
-
-Nao usa nenhuma dependencia externa (sem Flask/etc disponivel no ambiente) —
-so a biblioteca padrao do Python (http.server + threading), para servir a
-pagina estatica em web/ e uma API JSON simples que chama core.py.
-
-Ordenacoes rodam em threads separadas (background jobs) porque bubble/
-insertion sort sao O(n^2) e podem demorar muito com datasets grandes — o
-cliente cria o job e faz polling do status.
-"""
-
 import json
 import os
 import re
@@ -34,11 +22,7 @@ LINHA_TEMPOS_RE = re.compile(
     r"^\|\s*(\w+)\s*\|\s*(\w+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*([\d.]+)\s*\|\s*(.+?)\s*\|$"
 )
 
-
 def _ler_tempos():
-    """Le resultados/tempos.md e resultados/resultados_atividade2.md e
-    devolve os registros combinados (atividade 1 + atividade 2) como lista
-    de dicts."""
     registros = []
     for caminho in (core.TEMPOS_MD, core.TEMPOS_MD_ATIVIDADE2):
         if not os.path.isfile(caminho):
@@ -50,7 +34,7 @@ def _ler_tempos():
                     continue
                 algoritmo, tipo, tamanho, tempo_s, tempo_min, quando = m.groups()
                 if algoritmo == "Algoritmo":
-                    continue  # linha de cabecalho
+                    continue
                 registros.append(
                     {
                         "algoritmo": algoritmo,
@@ -66,12 +50,8 @@ def _ler_tempos():
 jobs = {}
 jobs_lock = threading.Lock()
 
-
 def _run_job(job_id, numeros, algoritmo, arquivo_original):
     try:
-        # A ordenacao roda numa thread propria (dentro de iniciar_ordenacao) —
-        # o buffer ctypes que ela muta ao vivo fica guardado no job pra quem
-        # chamar /api/status poder observar o progresso real enquanto roda.
         thread, buffer, resultado = core.iniciar_ordenacao(numeros, algoritmo)
         with jobs_lock:
             jobs[job_id]["_buffer"] = buffer
@@ -92,17 +72,16 @@ def _run_job(job_id, numeros, algoritmo, arquivo_original):
                 percent=100,
                 arquivo_saida=arquivo_saida,
             )
-    except Exception as exc:  # devolve erro pro cliente em vez de matar a thread
+    except Exception as exc:
         with jobs_lock:
             jobs[job_id].pop("_buffer", None)
             jobs[job_id].update(status="error", erro=str(exc))
-
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "OrdenacaoWeb/1.0"
 
     def log_message(self, fmt, *args):
-        pass  # silencia o log padrao no stderr
+        pass
 
     def _send_json(self, payload, status=200):
         body = json.dumps(payload).encode("utf-8")
@@ -260,7 +239,6 @@ class Handler(BaseHTTPRequestHandler):
 
         self._send_error_json("rota nao encontrada", 404)
 
-
 def main():
     porta = int(os.environ.get("PORT", 8000))
     servidor = ThreadingHTTPServer(("0.0.0.0", porta), Handler)
@@ -269,7 +247,6 @@ def main():
         servidor.serve_forever()
     except KeyboardInterrupt:
         pass
-
 
 if __name__ == "__main__":
     main()

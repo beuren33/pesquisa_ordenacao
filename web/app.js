@@ -1,8 +1,3 @@
-// Interface web (parte 3). So consome a API HTTP servida por server.py,
-// que por sua vez chama core.py. Nenhuma logica de ordenacao mora aqui —
-// a animacao de exemplo e so uma simulacao visual em JS pra ilustrar o
-// algoritmo, os numeros de verdade sao sempre ordenados pelo backend NASM.
-
 const ALGORITMOS = {
   bubble: {
     titulo: "Bubble Sort",
@@ -84,8 +79,6 @@ function formatarMinutos(segundos) {
   const resto = segundos - minutos * 60;
   return `${String(minutos).padStart(2, "0")}:${resto.toFixed(3).padStart(6, "0")} min`;
 }
-
-// ---------- animacao de exemplo (loop, 5 numeros) ----------
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -313,7 +306,14 @@ class Animacao {
   constructor(container, algoritmo) {
     this.container = container;
     this.algoritmo = algoritmo;
+    this.modo = algoritmo === "heap" ? "heap" : algoritmo === "merge" ? "merge" : "barras";
+
+    this.multiplicadorAtraso = this.modo === "heap" || this.modo === "merge" ? 2 : 1;
     this.rodando = true;
+  }
+
+  espera(ms) {
+    return sleep(ms * this.multiplicadorAtraso);
   }
 
   destruir() {
@@ -322,6 +322,14 @@ class Animacao {
 
   renderBase(valores) {
     this.container.innerHTML = "";
+    if (this.modo === "heap") {
+      this.renderArvoreBase(valores);
+      return;
+    }
+    if (this.modo === "merge") {
+      this.renderArvoreMergeBase(valores);
+      return;
+    }
     this.barras = valores.map((v, i) => {
       const el = document.createElement("div");
       el.className = "barra";
@@ -331,6 +339,159 @@ class Animacao {
       this.container.appendChild(el);
       return el;
     });
+  }
+
+  renderArvoreBase(valores) {
+    const n = valores.length;
+    const largura = 500;
+    const altura = 300;
+    const maxNivel = Math.floor(Math.log2(n));
+    const alturaNivel = (altura - 60) / (maxNivel + 1 || 1);
+    const raio = 22;
+
+    const posicoes = valores.map((_, i) => {
+      const nivel = Math.floor(Math.log2(i + 1));
+      const inicioNivel = 2 ** nivel - 1;
+      const posNoNivel = i - inicioNivel;
+      const slots = 2 ** nivel;
+      const x = ((posNoNivel + 1) / (slots + 1)) * largura;
+      const y = 34 + nivel * alturaNivel;
+      return { x, y };
+    });
+
+    const svg = criarSvg("svg", {
+      class: "arvore-svg",
+      viewBox: `0 0 ${largura} ${altura}`,
+    });
+
+    this.arvoreLinhas = new Map();
+    for (let i = 1; i < n; i++) {
+      const pai = Math.floor((i - 1) / 2);
+      const linha = criarSvg("line", {
+        class: "aresta",
+        x1: posicoes[pai].x,
+        y1: posicoes[pai].y,
+        x2: posicoes[i].x,
+        y2: posicoes[i].y,
+      });
+      svg.appendChild(linha);
+      this.arvoreLinhas.set(i, linha);
+    }
+
+    this.noCirculos = [];
+    this.noTextos = [];
+    valores.forEach((v, i) => {
+      const { x, y } = posicoes[i];
+      const circulo = criarSvg("circle", { class: "no", cx: x, cy: y, r: raio });
+      const texto = criarSvg("text", { class: "no-texto", x, y: y + 5, "text-anchor": "middle" });
+      texto.textContent = v;
+      svg.appendChild(circulo);
+      svg.appendChild(texto);
+      this.noCirculos.push(circulo);
+      this.noTextos.push(texto);
+    });
+
+    this.container.appendChild(svg);
+  }
+
+  construirArvoreMerge(n) {
+    const nos = [];
+    let maxNivel = 0;
+
+    const constroi = (lo, hi, nivel) => {
+      maxNivel = Math.max(maxNivel, nivel);
+      const no = { lo, hi, nivel, x: (lo + hi) / 2, filhos: [] };
+      nos.push(no);
+      if (lo === hi) return no;
+      const mid = lo + Math.floor((hi - lo) / 2);
+      no.filhos.push(constroi(lo, mid, nivel + 1));
+      no.filhos.push(constroi(mid + 1, hi, nivel + 1));
+      return no;
+    };
+    constroi(0, n - 1, 0);
+    return { nos, maxNivel };
+  }
+
+  renderArvoreMergeBase(valores) {
+    const n = valores.length;
+    const largura = 700;
+    const altura = 300;
+    const alturaNo = 26;
+    const { nos, maxNivel } = this.construirArvoreMerge(n);
+    const alturaNivel = (altura - 50) / (maxNivel + 1 || 1);
+    const larguraElemento = largura / n;
+
+    const posPixel = (no) => ({
+      x: (no.x + 0.5) * larguraElemento,
+      y: 24 + no.nivel * alturaNivel,
+    });
+
+    const svg = criarSvg("svg", { class: "arvore-svg", viewBox: `0 0 ${largura} ${altura}` });
+
+    const defs = criarSvg("defs", {});
+    const marcador = criarSvg("marker", {
+      id: "seta-merge",
+      markerWidth: 8,
+      markerHeight: 8,
+      refX: 6,
+      refY: 3,
+      orient: "auto",
+    });
+    marcador.appendChild(criarSvg("path", { d: "M0,0 L6,3 L0,6 Z", class: "seta-merge-ponta" }));
+    defs.appendChild(marcador);
+    svg.appendChild(defs);
+
+    this.mergeLinhas = new Map();
+    this.mergeFilhos = new Map();
+    nos.forEach((no) => {
+      if (no.filhos.length === 0) return;
+      const pPai = posPixel(no);
+      const chaveFilhos = [];
+      no.filhos.forEach((filho) => {
+        const pFilho = posPixel(filho);
+
+        const linha = criarSvg("line", {
+          class: "aresta",
+          x1: pFilho.x,
+          y1: pFilho.y - alturaNo / 2,
+          x2: pPai.x,
+          y2: pPai.y + alturaNo / 2,
+          "marker-end": "url(#seta-merge)",
+        });
+        svg.appendChild(linha);
+        const chaveFilho = `${filho.lo}-${filho.hi}`;
+        this.mergeLinhas.set(chaveFilho, linha);
+        chaveFilhos.push(chaveFilho);
+      });
+      this.mergeFilhos.set(`${no.lo}-${no.hi}`, chaveFilhos);
+    });
+
+    this.mergeNos = new Map();
+    nos.forEach((no) => {
+      const { x, y } = posPixel(no);
+      const largRetangulo = (no.hi - no.lo + 1) * larguraElemento - 4;
+      const ehFolha = no.filhos.length === 0;
+      const rect = criarSvg("rect", {
+        class: "no-merge" + (ehFolha ? "" : " no-merge-pendente"),
+        x: x - largRetangulo / 2,
+        y: y - alturaNo / 2,
+        width: largRetangulo,
+        height: alturaNo,
+        rx: 4,
+      });
+      const texto = criarSvg("text", {
+        class: "no-merge-texto",
+        x,
+        y: y + 4,
+        "text-anchor": "middle",
+      });
+      texto.textContent = ehFolha ? valores[no.lo] : "";
+      svg.appendChild(rect);
+      svg.appendChild(texto);
+      this.mergeNos.set(`${no.lo}-${no.hi}`, { rect, texto });
+    });
+
+    this.container.appendChild(svg);
   }
 
   setEstado(valores) {
@@ -347,6 +508,11 @@ class Animacao {
   }
 
   limparClasses() {
+    if (this.modo === "heap") {
+      this.noCirculos.forEach((c) => c.classList.remove("comparando", "trocando"));
+      return;
+    }
+    if (this.modo === "merge") return;
     this.barras.forEach((b) => b.classList.remove("comparando", "trocando"));
   }
 
@@ -354,13 +520,86 @@ class Animacao {
     while (this.rodando) {
       const valores = novoArrayExemplo();
       this.renderBase(valores);
-      await sleep(500);
+      await this.espera(500);
 
       const gerador = GERADORES_PASSOS[this.algoritmo](valores);
 
       for (const passo of gerador) {
         if (!this.rodando) return;
         this.limparClasses();
+
+        if (this.modo === "heap") {
+          if (passo.tipo === "comparar") {
+            const [i, j] = passo.indices;
+            this.noCirculos[i].classList.add("comparando");
+            this.noCirculos[j].classList.add("comparando");
+            await this.espera(450);
+          } else if (passo.tipo === "trocar") {
+            const [i, j] = passo.indices;
+            const filho = Math.max(i, j);
+            const linha = this.arvoreLinhas.get(filho);
+
+            this.noCirculos[i].classList.add("comparando");
+            this.noCirculos[j].classList.add("comparando");
+            if (linha) linha.classList.add("seta-ativa");
+            await this.espera(500);
+
+            this.noCirculos[i].classList.remove("comparando");
+            this.noCirculos[j].classList.remove("comparando");
+            if (linha) linha.classList.remove("seta-ativa");
+            this.noCirculos[i].classList.add("trocando");
+            this.noCirculos[j].classList.add("trocando");
+            this.noTextos[i].textContent = passo.estado[i];
+            this.noTextos[j].textContent = passo.estado[j];
+            await this.espera(450);
+          } else if (passo.tipo === "fixar") {
+            this.noCirculos[passo.indice].classList.remove("comparando", "trocando");
+            this.noCirculos[passo.indice].classList.add("ordenada");
+          }
+          continue;
+        }
+
+        if (this.modo === "merge") {
+
+          if (passo.tipo === "definir") {
+            const lo = passo.destaque[0];
+            const hi = passo.destaque[passo.destaque.length - 1];
+            const chave = `${lo}-${hi}`;
+            const no = this.mergeNos.get(chave);
+            if (no) {
+
+              const chaveFilhos = this.mergeFilhos.get(chave) || [];
+              chaveFilhos.forEach((chaveFilho) => {
+                const filho = this.mergeNos.get(chaveFilho);
+                const linha = this.mergeLinhas.get(chaveFilho);
+                if (filho) filho.rect.classList.add("comparando");
+                if (linha) linha.classList.add("seta-ativa");
+              });
+              await this.espera(700);
+
+              chaveFilhos.forEach((chaveFilho) => {
+                const filho = this.mergeNos.get(chaveFilho);
+                const linha = this.mergeLinhas.get(chaveFilho);
+                if (filho) {
+                  filho.rect.classList.remove("comparando");
+                  filho.rect.classList.add("no-merge-consumida");
+                  filho.texto.classList.add("no-merge-consumida");
+                }
+                if (linha) linha.classList.remove("seta-ativa");
+              });
+
+              no.rect.classList.remove("no-merge-pendente");
+              no.rect.classList.add("trocando");
+              no.texto.textContent = passo.estado.slice(lo, hi + 1).join(" ");
+              await this.espera(600);
+              no.rect.classList.remove("trocando");
+              if (lo === 0 && hi === valores.length - 1) {
+                no.rect.classList.add("ordenada");
+              }
+            }
+          }
+          continue;
+        }
 
         if (passo.tipo === "comparar") {
           const [i, j] = passo.indices;
@@ -384,12 +623,10 @@ class Animacao {
         }
       }
 
-      await sleep(1200);
+      await this.espera(1200);
     }
   }
 }
-
-// ---------- painel de cada aba ----------
 
 class Painel {
   constructor(algoritmoKey, secaoEl) {
@@ -549,8 +786,6 @@ class Painel {
   }
 }
 
-// ---------- aba comparativo ----------
-
 const CORES_ALGORITMO = {
   bubble: "#e53935",
   insertion: "#1e88e5",
@@ -583,8 +818,6 @@ function criarSvg(tag, attrs) {
   return el;
 }
 
-// Caixa flutuante de tooltip, uma por grafico, reaproveitada por todos os
-// pontos -- mostra o tempo individual de quem o mouse esta em cima.
 function criarTooltip(container) {
   const el = document.createElement("div");
   el.className = "grafico-tooltip";
@@ -625,7 +858,7 @@ function renderLegenda(algoritmos = ORDEM_ALGORITMOS) {
 }
 
 function ultimoRegistroPorAlgoritmoTamanho(registros, tipo) {
-  // Mapa algoritmo -> Map(tamanho -> registro mais recente), filtrado por tipo.
+
   const mapa = new Map();
   for (const algoritmo of ORDEM_ALGORITMOS) mapa.set(algoritmo, new Map());
   for (const r of registros) {
@@ -641,9 +874,6 @@ function formatarTempo(tempo) {
   return `${tempo.toFixed(2)}s`;
 }
 
-// Grafico de linha generico: tamanho do dataset (X) x tempo (Y), uma linha
-// por algoritmo. `escala` = "log" ou "linear"; `algoritmos` filtra quais
-// linhas desenhar (pra permitir um grafico "zoom" so nos rapidos).
 function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, escala = "log", titulo: tituloTxt } = {}) {
   const porAlgoritmo = ultimoRegistroPorAlgoritmoTamanho(registros, tipo);
   const tamanhos = [...new Set(registros.map((r) => r.tamanho))].sort((a, b) => a - b);
@@ -691,7 +921,6 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
     viewBox: `0 0 ${largura} ${alturaGrafico + margemBaixo + margemTopo}`,
   });
 
-  // grade horizontal (linhas de tempo) + vertical (linhas de tamanho)
   const grade = criarSvg("g", { class: "grade" });
   const N_LINHAS_Y = 5;
   for (let i = 0; i <= N_LINHAS_Y; i++) {
@@ -704,7 +933,6 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
   });
   svg.appendChild(grade);
 
-  // moldura do grafico
   svg.appendChild(
     criarSvg("rect", {
       x: margemEsq,
@@ -786,9 +1014,6 @@ function renderGraficoLinha(registros, tipo, { algoritmos = ORDEM_ALGORITMOS, es
   return container;
 }
 
-// Grafico de barras: um algoritmo por barra, pro maior tamanho de dataset
-// disponivel, escala log -- da pra comparar todos os 6 lado a lado de uma
-// vez so, sem depender de olhar varios pontos numa linha.
 function renderGraficoBarrasMaiorTamanho(registros, tipo) {
   const tamanhos = [...new Set(registros.map((r) => r.tamanho))].sort((a, b) => a - b);
   const maiorTamanho = tamanhos[tamanhos.length - 1];
@@ -911,9 +1136,6 @@ function algoritmosSelecionados() {
   );
 }
 
-// Grafico de barras agrupadas: um grupo por tamanho de dataset, e dentro de
-// cada grupo uma barra lado a lado por algoritmo selecionado -- da pra
-// comparar todos os tamanhos de uma vez, com espaco entre os grupos.
 function renderGraficoBarrasAgrupadas(registros, tipo, algoritmos) {
   const porAlgoritmo = ultimoRegistroPorAlgoritmoTamanho(registros, tipo);
   const tamanhos = [...new Set(registros.map((r) => r.tamanho))].sort((a, b) => a - b);
@@ -1066,8 +1288,6 @@ async function carregarComparativo() {
     destinoLinha.innerHTML = `<span class="aviso">Erro ao carregar tempos: ${err.message}</span>`;
   }
 }
-
-// ---------- montagem da pagina ----------
 
 async function main() {
   const template = document.getElementById("template-painel");
