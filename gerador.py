@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-"""CLI de terminal para o gerador (parte 1). Logica real esta em core.py."""
-
 import core
-
 
 def escolher_tamanho():
     print("\nTamanhos disponiveis:")
@@ -14,7 +10,6 @@ def escolher_tamanho():
             return core.TAMANHOS_DISPONIVEIS[int(escolha) - 1]
         print("Opcao invalida.")
 
-
 def escolher_tipo():
     print("\nTipos disponiveis:")
     for i, t in enumerate(core.TIPOS_DISPONIVEIS, start=1):
@@ -25,7 +20,6 @@ def escolher_tipo():
             return core.TIPOS_DISPONIVEIS[int(escolha) - 1]
         print("Opcao invalida.")
 
-
 def main():
     print("=== Gerador de arquivos de numeros ===")
     tamanho = escolher_tamanho()
@@ -33,7 +27,6 @@ def main():
     print(f"\nGerando {tamanho:,} numeros ({tipo})...".replace(",", "."))
     nome = core.gerar_arquivo(tamanho, tipo)
     print(f"Arquivo salvo em: datasets/{nome}")
-
 
 if __name__ == "__main__":
     main()

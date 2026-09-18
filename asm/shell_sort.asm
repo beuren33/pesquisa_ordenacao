@@ -1,8 +1,3 @@
-; shell_sort.asm
-; void shell_sort(int32_t *arr, int64_t n)
-; System V AMD64 ABI: rdi = arr, rsi = n
-; Sequencia de gaps: n/2, n/4, ..., 1 (Shell classico)
-
 section .text
 global shell_sort
 
@@ -16,42 +11,42 @@ shell_sort:
     push r15
 
     cmp rsi, 2
-    jl .done                   ; n < 2 -> nada a fazer
+    jl .done
 
-    mov r15, rsi                ; r15 = n
+    mov r15, rsi
     mov r14, r15
-    shr r14, 1                  ; r14 = gap = n/2
+    shr r14, 1
 
 .gap_loop:
     cmp r14, 0
     je .done
 
-    mov r12, r14                ; r12 = i = gap
+    mov r12, r14
 
 .outer:
     cmp r12, r15
     jge .next_gap
 
-    mov eax, [rdi + r12*4]      ; eax = temp = arr[i]
+    mov eax, [rdi + r12*4]
     mov r13, r12
-    sub r13, r14                 ; r13 = j = i - gap
+    sub r13, r14
 
 .inner:
     cmp r13, 0
     jl .insert
 
-    mov ebx, [rdi + r13*4]       ; arr[j]
+    mov ebx, [rdi + r13*4]
     cmp ebx, eax
     jle .insert
 
     lea rcx, [r13 + r14]
-    mov [rdi + rcx*4], ebx       ; arr[j+gap] = arr[j]
+    mov [rdi + rcx*4], ebx
     sub r13, r14
     jmp .inner
 
 .insert:
     lea rcx, [r13 + r14]
-    mov [rdi + rcx*4], eax       ; arr[j+gap] = temp
+    mov [rdi + rcx*4], eax
 
     inc r12
     jmp .outer

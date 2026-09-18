@@ -1,8 +1,3 @@
-; heap_sort.asm
-; void heap_sort(int32_t *arr, int64_t n)
-; System V AMD64 ABI: rdi = arr, rsi = n
-; Heap sort in-place: constroi max-heap, depois extrai o maior repetidamente.
-
 section .text
 global heap_sort
 
@@ -16,13 +11,12 @@ heap_sort:
     push r12
     push r13
 
-    mov rbx, rdi                 ; arr
-    mov r12, rsi                  ; n
+    mov rbx, rdi
+    mov r12, rsi
 
-    ; construir heap: for i = n/2 - 1 downto 0: sift_down(arr, n, i)
     mov rax, r12
     sar rax, 1
-    dec rax                        ; i = n/2 - 1
+    dec rax
 .build_loop:
     mov rdi, rbx
     mov rsi, r12
@@ -34,9 +28,8 @@ heap_sort:
     cmp rax, 0
     jge .build_loop
 
-    ; extrair: for i = n-1 downto 1: swap(arr[0],arr[i]); sift_down(arr, i, 0)
     mov r13, r12
-    dec r13                        ; i = n-1
+    dec r13
 .extract_loop:
     cmp r13, 0
     jle .extract_done
@@ -47,8 +40,8 @@ heap_sort:
     mov [rbx + r13*4], eax
 
     mov rdi, rbx
-    mov rsi, r13                    ; novo tamanho do heap
-    xor rdx, rdx                     ; raiz = 0
+    mov rsi, r13
+    xor rdx, rdx
     push r13
     call .sift_down
     pop r13
@@ -64,7 +57,6 @@ heap_sort:
 .done:
     ret
 
-; .sift_down(arr=rdi, size=rsi, i=rdx)
 .sift_down:
     push rbx
     push r12
@@ -72,16 +64,16 @@ heap_sort:
     push r14
     push r15
 
-    mov rbx, rdi                  ; arr
-    mov r12, rsi                   ; size
-    mov r13, rdx                    ; i
+    mov rbx, rdi
+    mov r12, rsi
+    mov r13, rdx
 
 .sift_loop:
-    mov r14, r13                    ; largest = i
+    mov r14, r13
 
     mov r15, r13
     shl r15, 1
-    inc r15                          ; l = 2*i + 1
+    inc r15
 
     cmp r15, r12
     jge .check_right
@@ -89,12 +81,12 @@ heap_sort:
     mov ecx, [rbx + r14*4]
     cmp eax, ecx
     jle .check_right
-    mov r14, r15                     ; largest = l
+    mov r14, r15
 
 .check_right:
     mov rax, r13
     shl rax, 1
-    add rax, 2                        ; r = 2*i + 2
+    add rax, 2
 
     cmp rax, r12
     jge .after_check
@@ -102,7 +94,7 @@ heap_sort:
     mov edx, [rbx + r14*4]
     cmp ecx, edx
     jle .after_check
-    mov r14, rax                      ; largest = r
+    mov r14, rax
 
 .after_check:
     cmp r14, r13
