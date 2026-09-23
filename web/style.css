@@ -208,12 +208,6 @@ header h1 {
   color: var(--texto);
 }
 
-.descricao-exemplo {
-  margin: 0 0 14px;
-  font-size: 1rem;
-  color: var(--texto);
-}
-
 .animacao {
   height: 360px;
   display: flex;

@@ -1,52 +1,12 @@
 const ALGORITMOS = {
-  bubble: {
-    titulo: "Bubble Sort",
-    descricaoExemplo:
-      "Compara pares vizinhos e troca quando estao fora de ordem, " +
-      "levando o maior valor pro fim a cada passagem.",
-  },
-  insertion: {
-    titulo: "Insertion Sort",
-    descricaoExemplo:
-      "Pega cada elemento e o insere na posicao correta entre os " +
-      "elementos ja ordenados a esquerda.",
-  },
-  shell: {
-    titulo: "Shell Sort",
-    descricaoExemplo:
-      "Como o Insertion Sort, mas compara elementos distantes " +
-      "primeiro, reduzindo o espaço a cada passada ate chegar em 1.",
-  },
-  selection: {
-    titulo: "Selection Sort",
-    descricaoExemplo:
-      "Encontra o menor elemento restante e o troca pra posicao atual, " +
-      "avancando da esquerda pra direita.",
-  },
-  quick: {
-    titulo: "Quick Sort",
-    descricaoExemplo:
-      "Escolhe um pivo, particiona o array em menores/maiores que ele " +
-      "e repete recursivamente em cada metade.",
-  },
-  merge: {
-    titulo: "Merge Sort",
-    descricaoExemplo:
-      "Divide o array ao meio recursivamente e depois intercala " +
-      "(merge) as metades ja ordenadas de volta.",
-  },
-  radix: {
-    titulo: "Radix Sort",
-    descricaoExemplo:
-      "Ordena por counting sort, digito a digito (do menos ao mais " +
-      "significativo), sem comparar os numeros entre si diretamente.",
-  },
-  heap: {
-    titulo: "Heap Sort",
-    descricaoExemplo:
-      "Monta um heap maximo com os numeros e vai tirando o maior " +
-      "elemento do topo pra posicao final, um de cada vez.",
-  },
+  bubble: { titulo: "Bubble Sort" },
+  insertion: { titulo: "Insertion Sort" },
+  shell: { titulo: "Shell Sort" },
+  selection: { titulo: "Selection Sort" },
+  quick: { titulo: "Quick Sort" },
+  merge: { titulo: "Merge Sort" },
+  radix: { titulo: "Radix Sort" },
+  heap: { titulo: "Heap Sort" },
 };
 
 const LIMITE_AVISO = 700_000;
@@ -646,9 +606,6 @@ class Painel {
     this.progressoPreenchimento = this.el.querySelector(".progresso-preenchimento");
     this.progressoValor = this.el.querySelector(".progresso-valor");
     this.resultado = this.el.querySelector(".resultado");
-    this.descricaoExemplo = this.el.querySelector(".descricao-exemplo");
-
-    this.descricaoExemplo.textContent = ALGORITMOS[algoritmoKey].descricaoExemplo;
 
     this.btnGerar.addEventListener("click", () => this.gerarDataset());
     this.btnAtualizar.addEventListener("click", () => this.atualizarArquivos());
@@ -1221,15 +1178,6 @@ function renderGraficoBarrasAgrupadas(registros, tipo, algoritmos) {
       tip.textContent = `${NOMES_ALGORITMO[algoritmo]}, ${formatarNumero(tamanho)}, ${formatarTempo(tempo)}`;
       rect.appendChild(tip);
       svg.appendChild(rect);
-
-      const valorTxt = criarSvg("text", {
-        x: xBarra + larguraBarra / 2,
-        y: yTopo - 6,
-        "text-anchor": "middle",
-        class: "barra-valor",
-      });
-      valorTxt.textContent = formatarTempo(tempo);
-      svg.appendChild(valorTxt);
     });
 
     const rotulo = criarSvg("text", {
