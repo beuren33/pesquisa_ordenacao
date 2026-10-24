@@ -54,6 +54,16 @@ function novoArrayExemplo() {
   return valores;
 }
 
+function novoArrayExemploRadix() {
+  const n = 5;
+  const valores = [];
+  while (valores.length < n) {
+    const v = 100 + Math.floor(Math.random() * 800);
+    if (!valores.includes(v)) valores.push(v);
+  }
+  return valores;
+}
+
 function* passosBubble(arr) {
   const a = arr.slice();
   const n = a.length;
@@ -197,22 +207,32 @@ function* passosMerge(arr) {
   for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
 }
 
+function nomeCasaRadix(exp) {
+  if (exp === 1) return "unidades";
+  if (exp === 10) return "dezenas";
+  if (exp === 100) return "centenas";
+  if (exp === 1000) return "milhares";
+  return `10^${Math.log10(exp)}`;
+}
+
 function* passosRadix(arr) {
   const a = arr.slice();
   const n = a.length;
   const max = Math.max(...a);
 
   for (let exp = 1; Math.floor(max / exp) > 0; exp *= 10) {
+    yield { tipo: "casa", casa: nomeCasaRadix(exp), exp };
     const baldes = Array.from({ length: 10 }, () => []);
     for (let i = 0; i < n; i++) {
       const digito = Math.floor(a[i] / exp) % 10;
       baldes[digito].push(a[i]);
+      yield { tipo: "colocar", valor: a[i], digito };
     }
     let k = 0;
     for (let d = 0; d < 10; d++) {
       for (const v of baldes[d]) a[k++] = v;
     }
-    yield { tipo: "definir", estado: a.slice(), destaque: a.map((_, i) => i) };
+    yield { tipo: "coletar", estado: a.slice() };
   }
   for (let k = 0; k < n; k++) yield { tipo: "fixar", indice: k };
 }
@@ -266,9 +286,10 @@ class Animacao {
   constructor(container, algoritmo) {
     this.container = container;
     this.algoritmo = algoritmo;
-    this.modo = algoritmo === "heap" ? "heap" : algoritmo === "merge" ? "merge" : "barras";
+    this.modo =
+      algoritmo === "heap" ? "heap" : algoritmo === "merge" ? "merge" : algoritmo === "radix" ? "radix" : "barras";
 
-    this.multiplicadorAtraso = this.modo === "heap" || this.modo === "merge" ? 2 : 1;
+    this.multiplicadorAtraso = this.modo === "heap" || this.modo === "merge" ? 2 : this.modo === "radix" ? 1.3 : 1;
     this.rodando = true;
   }
 
@@ -288,6 +309,10 @@ class Animacao {
     }
     if (this.modo === "merge") {
       this.renderArvoreMergeBase(valores);
+      return;
+    }
+    if (this.modo === "radix") {
+      this.renderRadixBase(valores);
       return;
     }
     this.barras = valores.map((v, i) => {
@@ -454,6 +479,48 @@ class Animacao {
     this.container.appendChild(svg);
   }
 
+  renderRadixBase(valores) {
+    const wrap = document.createElement("div");
+    wrap.className = "radix-container";
+
+    const arrayRow = document.createElement("div");
+    arrayRow.className = "radix-array";
+    this.radixChips = valores.map((v) => {
+      const chip = document.createElement("div");
+      chip.className = "radix-chip";
+      chip.textContent = v;
+      arrayRow.appendChild(chip);
+      return chip;
+    });
+
+    const casaLabel = document.createElement("div");
+    casaLabel.className = "radix-casa";
+    casaLabel.textContent = "Preparando...";
+    this.radixCasaLabel = casaLabel;
+
+    const baldesRow = document.createElement("div");
+    baldesRow.className = "radix-baldes";
+    this.radixBaldes = [];
+    for (let d = 0; d < 10; d++) {
+      const balde = document.createElement("div");
+      balde.className = "radix-balde";
+      const pilha = document.createElement("div");
+      pilha.className = "radix-balde-pilha";
+      const titulo = document.createElement("span");
+      titulo.className = "radix-balde-titulo";
+      titulo.textContent = d;
+      balde.appendChild(pilha);
+      balde.appendChild(titulo);
+      baldesRow.appendChild(balde);
+      this.radixBaldes.push(pilha);
+    }
+
+    wrap.appendChild(arrayRow);
+    wrap.appendChild(casaLabel);
+    wrap.appendChild(baldesRow);
+    this.container.appendChild(wrap);
+  }
+
   setEstado(valores) {
     valores.forEach((v, i) => {
       this.barras[i].style.left = `${i * 20}%`;
@@ -472,13 +539,13 @@ class Animacao {
       this.noCirculos.forEach((c) => c.classList.remove("comparando", "trocando"));
       return;
     }
-    if (this.modo === "merge") return;
+    if (this.modo === "merge" || this.modo === "radix") return;
     this.barras.forEach((b) => b.classList.remove("comparando", "trocando"));
   }
 
   async loop() {
     while (this.rodando) {
-      const valores = novoArrayExemplo();
+      const valores = this.algoritmo === "radix" ? novoArrayExemploRadix() : novoArrayExemplo();
       this.renderBase(valores);
       await this.espera(500);
 
@@ -557,6 +624,32 @@ class Animacao {
                 no.rect.classList.add("ordenada");
               }
             }
+          }
+          continue;
+        }
+
+        if (this.modo === "radix") {
+          if (passo.tipo === "casa") {
+            this.radixCasaLabel.textContent = `Casa das ${passo.casa}`;
+            this.radixBaldes.forEach((pilha) => (pilha.innerHTML = ""));
+            await this.espera(600);
+          } else if (passo.tipo === "colocar") {
+            const pilha = this.radixBaldes[passo.digito];
+            const item = document.createElement("div");
+            item.className = "radix-balde-item";
+            item.textContent = passo.valor;
+            pilha.appendChild(item);
+            await this.espera(350);
+          } else if (passo.tipo === "coletar") {
+            this.radixChips.forEach((chip, i) => {
+              chip.textContent = passo.estado[i];
+              chip.classList.add("trocando");
+            });
+            await this.espera(700);
+            this.radixChips.forEach((chip) => chip.classList.remove("trocando"));
+            this.radixBaldes.forEach((pilha) => (pilha.innerHTML = ""));
+          } else if (passo.tipo === "fixar") {
+            this.radixChips[passo.indice].classList.add("ordenada");
           }
           continue;
         }
