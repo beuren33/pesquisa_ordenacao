@@ -1,0 +1,1215 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Simulador do ABC</title>
+<style>
+:root {
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", Inter, Arial, sans-serif;
+  /* Paleta: branco, preto e amarelo (mel). Amarelo só como preenchimento; texto sempre preto/branco. */
+  --yellow: #FFC400;
+  --yellow-soft: #FFF3C4;
+  --bg: #FFFFFF;
+  --blob-a: rgba(255, 196, 0, .16);
+  --blob-b: rgba(255, 196, 0, .08);
+  --card: #FFFFFF;
+  --glass: rgba(255, 255, 255, .80);
+  --card-border: rgba(10, 10, 10, .14);
+  --bar: #FFFFFF;
+  --bar-glass: rgba(255, 255, 255, .82);
+  --text: #0A0A0A;
+  --text2: #555555;
+  --sep: rgba(10, 10, 10, .14);
+  --accent: #FFC400;
+  --fill: #0A0A0A;
+  --line: #0A0A0A;
+  --track: rgba(10, 10, 10, .14);
+  --seg: rgba(10, 10, 10, .07);
+  --seg-thumb: #FFC400;
+  --seg-thumb-fg: #0A0A0A;
+  --map-bg: #ECECEC;
+  --thumb-shadow: 0 0 0 1.5px #0A0A0A;
+  --btn-bg: #FFC400;
+  --btn-fg: #0A0A0A;
+  --focus: #0A0A0A;
+  --ramp: linear-gradient(to right, #1C1C1C, #787878, #FFFFFF);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 20px rgba(0, 0, 0, .05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000;
+    --blob-a: rgba(255, 196, 0, .16);
+    --blob-b: rgba(255, 196, 0, .07);
+    --card: #111111;
+    --glass: rgba(17, 17, 17, .78);
+    --card-border: rgba(255, 255, 255, .16);
+    --bar: #000000;
+    --bar-glass: rgba(0, 0, 0, .78);
+    --text: #FFFFFF;
+    --text2: #B8B8B8;
+    --sep: rgba(255, 255, 255, .18);
+    --fill: #FFC400;
+    --line: #FFC400;
+    --track: rgba(255, 255, 255, .22);
+    --seg: rgba(255, 255, 255, .12);
+    --map-bg: #050505;
+    --focus: #FFC400;
+    --ramp: linear-gradient(to right, #2C2C2C, #848484, #FFFFFF);
+    --thumb-shadow: 0 0 0 1.5px #0A0A0A;
+    --card-shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --blob-a: rgba(255, 196, 0, .16);
+  --blob-b: rgba(255, 196, 0, .07);
+  --card: #111111;
+  --glass: rgba(17, 17, 17, .78);
+  --card-border: rgba(255, 255, 255, .16);
+  --bar: #000000;
+  --bar-glass: rgba(0, 0, 0, .78);
+  --text: #FFFFFF;
+  --text2: #B8B8B8;
+  --sep: rgba(255, 255, 255, .18);
+  --fill: #FFC400;
+  --line: #FFC400;
+  --track: rgba(255, 255, 255, .22);
+  --seg: rgba(255, 255, 255, .12);
+  --map-bg: #050505;
+  --focus: #FFC400;
+  --ramp: linear-gradient(to right, #2C2C2C, #848484, #FFFFFF);
+  --thumb-shadow: 0 0 0 1.5px #0A0A0A;
+  --card-shadow: none;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 17px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 0% 0%, var(--blob-a), transparent 70%),
+    radial-gradient(50% 40% at 100% 30%, var(--blob-b), transparent 70%);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left));
+  min-width: 0;
+}
+
+.hero { padding: 8px 4px 4px; }
+.eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+h1 {
+  margin: 4px 0 6px;
+  font-size: 34px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.lede { margin: 0; color: var(--text2); font-size: 16px; }
+
+.layout {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+  min-width: 0;
+}
+.col { display: grid; gap: 16px; min-width: 0; align-content: start; }
+
+.card {
+  background: var(--card);
+  border-radius: 22px;
+  padding: 20px;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
+  min-width: 0;
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .card {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.badge {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--seg);
+  color: var(--text2);
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Mapa */
+.map-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--map-bg);
+}
+#map { display: block; width: 100%; height: 100%; }
+.scale {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.scale-bar { flex: 1; height: 10px; border-radius: 5px; background: var(--ramp); }
+
+/* Gráfico */
+.axis-note { margin: 0 0 8px; font-size: 14px; color: var(--text2); }
+.chart { display: block; width: 100%; height: 190px; }
+
+/* Parâmetros */
+.param { padding: 12px 0; border-top: .5px solid var(--sep); }
+.param:first-of-type { border-top: 0; padding-top: 0; }
+.param-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.param-name { font-weight: 600; }
+.param-value {
+  font-variant-numeric: tabular-nums;
+  color: var(--text2);
+  font-size: 15px;
+}
+.hint { margin: 2px 0 4px; color: var(--text2); font-size: 15px; }
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  --p: 50%;
+}
+input[type="range"]:focus { outline: none; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--fill) var(--p), var(--track) var(--p));
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -11px;
+  border: 2px solid #0A0A0A;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: none;
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+}
+input[type="range"]::-moz-range-progress {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--fill);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #0A0A0A;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .30), 0 0 0 .5px rgba(0, 0, 0, .04);
+}
+input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--focus); }
+input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--focus); }
+
+/* Segmented control */
+.seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--seg);
+  --i: 0;
+}
+.seg-thumb {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: calc((100% - 4px) / 3);
+  border-radius: 8px;
+  background: var(--seg-thumb);
+  box-shadow: var(--thumb-shadow);
+  transform: translateX(calc(var(--i) * 100%));
+  transition: transform .3s cubic-bezier(.3, .7, .4, 1);
+}
+.seg input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  margin: 0;
+  pointer-events: none;
+}
+.seg label {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+.seg input:checked + label { font-weight: 700; color: var(--seg-thumb-fg); }
+.seg input:focus-visible + label { box-shadow: 0 0 0 3px var(--focus); }
+
+/* Legenda */
+.legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.legend li { display: grid; grid-template-columns: 14px 1fr; gap: 12px; align-items: start; }
+.legend p { margin: 0; font-size: 15px; color: var(--text2); }
+.legend strong { color: var(--text); font-weight: 600; }
+.dot {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .35);
+}
+.dot.emp { background: var(--yellow); box-shadow: 0 0 0 1.5px #0A0A0A; }
+.dot.onl { background: #0A0A0A; box-shadow: 0 0 0 2px var(--yellow), 0 0 0 3.5px #0A0A0A; }
+.dot.sc { background: #FFFFFF; box-shadow: 0 0 0 2.5px #0A0A0A; }
+.dot.best { background: transparent; box-shadow: 0 0 0 2px var(--yellow), 0 0 0 3.5px #0A0A0A; width: 10px; height: 10px; margin: 6px 2px 0; }
+
+/* Narração */
+.narr { margin: 0; font-size: 16px; min-height: 3.4em; }
+
+/* Barra de controles */
+.toolbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 8px calc(16px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+  background: var(--bar);
+  border-top: .5px solid var(--sep);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .toolbar {
+    background: var(--bar-glass);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+.tbtn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  margin: 0;
+  min-height: 56px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.tbtn svg { width: 24px; height: 24px; flex: none; }
+.tbtn.primary { background: var(--btn-bg); color: var(--btn-fg); }
+.tbtn:disabled { opacity: .4; cursor: default; }
+.tbtn:active:not(:disabled) { transform: scale(.97); }
+.tbtn:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--focus); }
+#btn-play .i-pause { display: none; }
+#btn-play.is-playing .i-pause { display: block; }
+#btn-play.is-playing .i-play { display: none; }
+
+button:focus-visible, input:focus-visible { outline: none; }
+
+/* Telas largas: duas colunas */
+@media (min-width: 1100px) {
+  body { padding-bottom: 0; }
+  h1 { font-size: 44px; }
+  .layout {
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+  .toolbar {
+    position: static;
+    padding: 8px;
+    border: 0;
+    border-radius: 22px;
+    box-shadow: var(--card-shadow);
+    background: var(--card);
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .toolbar { background: var(--glass); }
+  }
+  .tbtn { min-height: 64px; }
+  .chart { height: 220px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
+  }
+  .tbtn:active:not(:disabled) { transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hero">
+    <p class="eyebrow">Colônia de abelhas artificiais</p>
+    <h1>Simulador do ABC</h1>
+    <p class="lede">As abelhas procuram o pico da montanha: quanto mais alto, mais néctar. Ajuste os parâmetros e acompanhe cada ciclo.</p>
+  </header>
+
+  <div class="layout">
+    <div class="col col-main">
+      <section class="card" aria-labelledby="h-map">
+        <div class="card-head">
+          <h2 id="h-map">Montanha e colônia</h2>
+          <span class="badge" id="badge">Ciclo 0 de 100</span>
+        </div>
+        <div class="map-wrap">
+          <canvas id="map" role="img" aria-label="Montanha da função com as flores e a melhor solução"></canvas>
+        </div>
+        <div class="scale" aria-hidden="true">
+          <span>vale (pior)</span>
+          <div class="scale-bar"></div>
+          <span>pico (melhor)</span>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-chart">
+        <div class="card-head">
+          <h2 id="h-chart">Convergência</h2>
+          <span class="badge" id="best-badge">melhor: 0</span>
+        </div>
+        <p class="axis-note">melhor valor (escala log) por ciclo</p>
+        <canvas id="chart" class="chart" role="img" aria-label="Gráfico do melhor valor por ciclo, em escala logarítmica"></canvas>
+      </section>
+    </div>
+
+    <div class="col col-side">
+      <nav class="toolbar" aria-label="Controles da simulação">
+        <button type="button" class="tbtn primary" id="btn-play" aria-label="Reproduzir">
+          <svg class="i-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>
+          <svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect fill="currentColor" x="6" y="5" width="4.5" height="14" rx="1.2"/><rect fill="currentColor" x="13.5" y="5" width="4.5" height="14" rx="1.2"/></svg>
+          <span class="label">Reproduzir</span>
+        </button>
+        <button type="button" class="tbtn" id="btn-step" aria-label="Passo: avançar um ciclo">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M5 6.2v11.6a1 1 0 0 0 1.55.84l8.3-5.8a1 1 0 0 0 0-1.68l-8.3-5.8A1 1 0 0 0 5 6.2z"/><rect fill="currentColor" x="16" y="5.5" width="2.8" height="13" rx="1"/></svg>
+          <span>Passo</span>
+        </button>
+        <button type="button" class="tbtn" id="btn-reset" aria-label="Reiniciar com novas posições">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4.5v4h4"/></svg>
+          <span>Reiniciar</span>
+        </button>
+      </nav>
+
+      <section class="card" aria-labelledby="h-params">
+        <h2 id="h-params">Parâmetros</h2>
+        <p class="hint" style="margin-top:4px">Mexer em qualquer controle reinicia a colônia.</p>
+
+        <div class="param">
+          <div class="param-head">
+            <label class="param-name" for="sl-sn">Flores</label>
+            <output class="param-value" id="out-sn" for="sl-sn">20</output>
+          </div>
+          <p class="hint" id="hint-sn">quantas soluções a colônia mantém ao mesmo tempo</p>
+          <input autocomplete="off" type="range" id="sl-sn" min="2" max="50" step="1" value="20" aria-describedby="hint-sn">
+        </div>
+
+        <div class="param">
+          <div class="param-head">
+            <label class="param-name" for="sl-limit">Limite de falhas</label>
+            <output class="param-value" id="out-limit" for="sl-limit">20</output>
+          </div>
+          <p class="hint" id="hint-limit">quantas falhas seguidas uma flor aguenta antes de ser abandonada</p>
+          <input autocomplete="off" type="range" id="sl-limit" min="1" max="100" step="1" value="20" aria-describedby="hint-limit">
+        </div>
+
+        <div class="param">
+          <div class="param-head">
+            <label class="param-name" for="sl-cycles">Ciclos</label>
+            <output class="param-value" id="out-maxCycles" for="sl-cycles">100</output>
+          </div>
+          <p class="hint" id="hint-cycles">quantas rodadas completas a colônia executa</p>
+          <input autocomplete="off" type="range" id="sl-cycles" min="10" max="500" step="1" value="100" aria-describedby="hint-cycles">
+        </div>
+
+        <div class="param">
+          <div class="param-head">
+            <span class="param-name" id="lbl-fn">Função</span>
+          </div>
+          <p class="hint" id="hint-fn">a montanha que as abelhas exploram: quanto mais alto, mais néctar</p>
+          <div class="seg" id="seg" role="radiogroup" aria-labelledby="lbl-fn" aria-describedby="hint-fn">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <input autocomplete="off" type="radio" name="fn" id="fn-sphere" value="sphere" checked>
+            <label for="fn-sphere">Sphere</label>
+            <input autocomplete="off" type="radio" name="fn" id="fn-rastrigin" value="rastrigin">
+            <label for="fn-rastrigin">Rastrigin</label>
+            <input autocomplete="off" type="radio" name="fn" id="fn-ackley" value="ackley">
+            <label for="fn-ackley">Ackley</label>
+          </div>
+        </div>
+
+        <div class="param">
+          <div class="param-head">
+            <label class="param-name" for="sl-speed">Velocidade</label>
+            <output class="param-value" id="out-speed" for="sl-speed">6 ciclos/s</output>
+          </div>
+          <p class="hint" id="hint-speed">quantos ciclos por segundo na animação</p>
+          <input autocomplete="off" type="range" id="sl-speed" min="1" max="30" step="1" value="6" aria-describedby="hint-speed">
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="h-legend">
+        <h2 id="h-legend">As três abelhas</h2>
+        <p class="hint">Cada flor é uma solução, e a cor dela mostra qual abelha a visitou por último.</p>
+        <ul class="legend" style="margin-top:12px">
+          <li><span class="dot emp" aria-hidden="true"></span><p><strong>Empregada (pétalas amarelas):</strong> visita cada flor uma vez e só se move se achar um ponto melhor.</p></li>
+          <li><span class="dot onl" aria-hidden="true"></span><p><strong>Observadora (pétalas pretas, miolo amarelo):</strong> escolhe flores pela roleta, com mais chance para as melhores, e faz a mesma visita.</p></li>
+          <li><span class="dot sc" aria-hidden="true"></span><p><strong>Exploradora (pétalas brancas, miolo preto):</strong> entra só quando uma flor passou do limite; abandona essa flor e sorteia um lugar novo, mesmo que pior.</p></li>
+          <li><span class="dot best" aria-hidden="true"></span><p><strong>Melhor solução:</strong> anel amarelo ao redor da flor, o menor valor já encontrado.</p></li>
+        </ul>
+      </section>
+
+      <section class="card" aria-labelledby="h-narr">
+        <h2 id="h-narr">Último ciclo</h2>
+        <p class="narr" id="narr" aria-live="polite"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script id="abc-core">
+// Núcleo do ABC: funções puras, sem DOM. Minimização em [-5, 5]^2.
+const LO = -5;
+const HI = 5;
+
+function clampCoord(v) {
+  return v < LO ? LO : (v > HI ? HI : v);
+}
+
+const FUNCTIONS = {
+  sphere: {
+    name: 'Sphere',
+    f: (p) => p[0] * p[0] + p[1] * p[1]
+  },
+  rastrigin: {
+    name: 'Rastrigin',
+    f: (p) => 20 + (p[0] * p[0] - 10 * Math.cos(2 * Math.PI * p[0])) + (p[1] * p[1] - 10 * Math.cos(2 * Math.PI * p[1]))
+  },
+  ackley: {
+    name: 'Ackley',
+    f: (p) => {
+      const s1 = (p[0] * p[0] + p[1] * p[1]) / 2;
+      const s2 = (Math.cos(2 * Math.PI * p[0]) + Math.cos(2 * Math.PI * p[1])) / 2;
+      return -20 * Math.exp(-0.2 * Math.sqrt(s1)) - Math.exp(s2) + Math.E + 20;
+    }
+  }
+};
+
+// Sem semente: Math.random. Com semente: mulberry32 (só para testes).
+function createRng(seed) {
+  if (seed === undefined || seed === null) return Math.random;
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function randomPoint(rng) {
+  return [LO + rng() * (HI - LO), LO + rng() * (HI - LO)];
+}
+
+function evaluate(colony, p) {
+  return FUNCTIONS[colony.fn].f(p);
+}
+
+// Qualidade (fit) para minimização. Se f < 0 (erro numérico do Ackley perto de 0), usa 1 - f.
+function quality(f) {
+  return f >= 0 ? 1 / (1 + f) : 1 - f;
+}
+
+function makeColony(opts, rng) {
+  const fn = FUNCTIONS[opts.fn] ? opts.fn : 'sphere';
+  const sn = Math.max(2, Math.floor(opts.sn));
+  const colony = {
+    fn: fn,
+    sn: sn,
+    maxCycles: opts.maxCycles,
+    cycle: 0,
+    flowers: [],
+    values: [],
+    fails: [],
+    roles: [],
+    best: null,
+    history: []
+  };
+  for (let i = 0; i < sn; i++) {
+    const p = randomPoint(rng);
+    colony.flowers.push(p);
+    colony.values.push(evaluate(colony, p));
+    colony.fails.push(0);
+    colony.roles.push(null);
+  }
+  let bi = 0;
+  for (let i = 1; i < sn; i++) if (colony.values[i] < colony.values[bi]) bi = i;
+  colony.best = { point: colony.flowers[bi].slice(), value: colony.values[bi] };
+  colony.history.push(colony.best.value);
+  return colony;
+}
+
+// VISITA(i): vizinha k != i, passo phi em [-1, 1], uma dimensão j (padrão ABC original).
+// Compara SEMPRE com a própria flor i.
+function visit(colony, i, rng, role) {
+  const sn = colony.sn;
+  let k = Math.floor(rng() * (sn - 1));
+  if (k >= i) k++;
+  const phi = rng() * 2 - 1;
+  const j = rng() < 0.5 ? 0 : 1;
+  const xi = colony.flowers[i];
+  const xk = colony.flowers[k];
+  const cand = [xi[0], xi[1]];
+  cand[j] = clampCoord(xi[j] + phi * (xi[j] - xk[j]));
+  const fNew = evaluate(colony, cand);
+  colony.roles[i] = role;
+  if (fNew < colony.values[i]) {
+    colony.flowers[i] = cand;
+    colony.values[i] = fNew;
+    colony.fails[i] = 0;
+    return true;
+  }
+  colony.fails[i] += 1;
+  return false;
+}
+
+function isDone(colony) {
+  return colony.cycle >= colony.maxCycles;
+}
+
+// Um ciclo completo: empregadas, roleta, observadoras, melhor global, exploradora.
+function runCycle(colony, params, rng) {
+  const sn = colony.sn;
+  const limit = params.limit;
+
+  let improvedEmployed = 0;
+  for (let i = 0; i < sn; i++) {
+    if (visit(colony, i, rng, 'employed')) improvedEmployed++;
+  }
+
+  const q = colony.values.map(quality);
+  let total = 0;
+  for (let i = 0; i < sn; i++) total += q[i];
+  const cum = [];
+  let acc = 0;
+  for (let i = 0; i < sn; i++) {
+    acc += q[i] / total;
+    cum.push(acc);
+  }
+
+  let improvedOnlooker = 0;
+  for (let s = 0; s < sn; s++) {
+    const r = rng();
+    let idx = sn - 1;
+    for (let j = 0; j < sn; j++) {
+      if (r < cum[j]) { idx = j; break; }
+    }
+    if (visit(colony, idx, rng, 'onlooker')) improvedOnlooker++;
+  }
+
+  let bi = 0;
+  for (let i = 1; i < sn; i++) if (colony.values[i] < colony.values[bi]) bi = i;
+  if (colony.values[bi] < colony.best.value) {
+    colony.best = { point: colony.flowers[bi].slice(), value: colony.values[bi] };
+  }
+
+  let w = 0;
+  for (let i = 1; i < sn; i++) if (colony.fails[i] > colony.fails[w]) w = i;
+  let scoutHappened = false;
+  let scoutIndex = -1;
+  if (colony.fails[w] > limit) {
+    const p = randomPoint(rng);
+    colony.flowers[w] = p;
+    colony.values[w] = evaluate(colony, p);
+    colony.fails[w] = 0;
+    colony.roles[w] = 'scout';
+    scoutHappened = true;
+    scoutIndex = w;
+  }
+
+  colony.cycle += 1;
+  colony.history.push(colony.best.value);
+
+  return {
+    cycle: colony.cycle,
+    improvedEmployed: improvedEmployed,
+    improvedOnlooker: improvedOnlooker,
+    scoutHappened: scoutHappened,
+    scoutIndex: scoutIndex,
+    bestValue: colony.best.value,
+    bestPoint: colony.best.point.slice()
+  };
+}
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    LO: LO, HI: HI, clampCoord: clampCoord, FUNCTIONS: FUNCTIONS, createRng: createRng,
+    quality: quality, makeColony: makeColony, visit: visit, runCycle: runCycle, isDone: isDone
+  };
+}
+</script>
+
+<script>
+(function () {
+  'use strict';
+
+  const $ = (id) => document.getElementById(id);
+  const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+  const mqReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, Arial, sans-serif';
+  const RAMP = {
+    light: [[28, 28, 28], [120, 120, 120], [255, 255, 255]],
+    dark: [[44, 44, 44], [132, 132, 132], [255, 255, 255]]
+  };
+  const SUP = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+
+  const mapC = $('map');
+  const chartC = $('chart');
+  const mctx = mapC.getContext('2d');
+  const cctx = chartC.getContext('2d');
+  const playBtn = $('btn-play');
+  const stepBtn = $('btn-step');
+  const badge = $('badge');
+  const bestBadge = $('best-badge');
+  const narr = $('narr');
+  const rng = createRng();
+
+  const params = { fn: 'sphere', sn: 20, limit: 20, maxCycles: 100, speed: 6 };
+  let colony = null;
+  let disp = [];
+  let playing = false;
+  let acc = 0;
+  let lastT = 0;
+  let dpr = window.devicePixelRatio || 1;
+
+  function fmtNum(v) {
+    if (v === 0) return '0';
+    if (Math.abs(v) < 1e-3) return v.toExponential(2).replace('.', ',');
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+  }
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function sup10(k) {
+    return '10' + String(k).split('').map((c) => SUP[c]).join('');
+  }
+
+  function narrate(text) {
+    narr.textContent = text;
+  }
+
+  function describe(rep) {
+    const n = colony.sn;
+    const emp = `${rep.improvedEmployed} de ${n} empregadas melhoraram`;
+    const onl = rep.improvedOnlooker === 1
+      ? '1 observadora melhorou'
+      : `${rep.improvedOnlooker} observadoras melhoraram`;
+    let txt = `Ciclo ${rep.cycle}: ${emp}; ${onl}; `;
+    txt += rep.scoutHappened ? '' : 'sem exploradora; ';
+    txt += `melhor valor ${fmtNum(rep.bestValue)}.`;
+    if (rep.scoutHappened) {
+      txt += ` A exploradora abandonou a flor ${rep.scoutIndex + 1} e sorteou um lugar novo.`;
+    }
+    if (isDone(colony)) {
+      txt += ` Concluído após ${colony.maxCycles} ciclos.`;
+    }
+    return txt;
+  }
+
+  function updateUI() {
+    const done = isDone(colony);
+    playBtn.classList.toggle('is-playing', playing);
+    const label = playing ? 'Pausar' : 'Reproduzir';
+    playBtn.setAttribute('aria-label', label);
+    playBtn.querySelector('.label').textContent = label;
+    stepBtn.disabled = done;
+    badge.textContent = done ? 'Concluído' : `Ciclo ${colony.cycle} de ${params.maxCycles}`;
+    bestBadge.textContent = `melhor: ${fmtNum(colony.best.value)}`;
+    mapC.setAttribute('aria-label',
+      `Montanha da função ${FUNCTIONS[colony.fn].name} com as abelhas. Ciclo ${colony.cycle}, melhor valor ${fmtNum(colony.best.value)}.`);
+  }
+
+  function restart() {
+    colony = makeColony({ fn: params.fn, sn: params.sn, maxCycles: params.maxCycles }, rng);
+    disp = colony.flowers.map((p) => p.slice());
+    acc = 0;
+    narrate(`Colônia nova: ${colony.sn} flores em posições aleatórias. Aperte passo para ver um ciclo ou reproduzir para acompanhar.`);
+    updateUI();
+  }
+
+  function advance() {
+    if (!colony || isDone(colony)) return false;
+    const rep = runCycle(colony, { limit: params.limit }, rng);
+    if (isDone(colony)) playing = false;
+    narrate(describe(rep));
+    updateUI();
+    return true;
+  }
+
+  // Cores e mapa de calor
+  function rampColor(stops, t) {
+    const n = stops.length - 1;
+    const x = Math.min(1, Math.max(0, t)) * n;
+    const i = Math.min(n - 1, Math.floor(x));
+    const u = x - i;
+    const a = stops[i];
+    const b = stops[i + 1];
+    return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u];
+  }
+
+  // Montanha: a altura é o néctar (pico = menor valor da função = melhor). Projeção oblíqua fixa.
+  const AZ = 35 * Math.PI / 180;
+  const EL = 38 * Math.PI / 180;
+  const HZ = 8; // altura máxima, em unidades do domínio
+  const nectarCache = {};
+  const terrainCache = {};
+
+  function nectarRange(fn) {
+    if (nectarCache[fn]) return nectarCache[fn];
+    const N = 60;
+    let mn = Infinity;
+    let mx = -Infinity;
+    for (let j = 0; j <= N; j++) {
+      for (let i = 0; i <= N; i++) {
+        const v = FUNCTIONS[fn].f([LO + i / N * (HI - LO), LO + j / N * (HI - LO)]);
+        if (v < mn) mn = v;
+        if (v > mx) mx = v;
+      }
+    }
+    return (nectarCache[fn] = { mn: mn, range: (mx - mn) || 1 });
+  }
+
+  // Altura 0..1 (1 = pico). Escala logarítmica para o vale não ficar achatado.
+  function heightAt(fn, x, y) {
+    const r = nectarRange(fn);
+    const v = Math.max(r.mn, FUNCTIONS[fn].f([x, y]));
+    const t = Math.log(1 + 9 * (v - r.mn) / r.range) / Math.LN10;
+    return 1 - Math.min(1, Math.max(0, t));
+  }
+
+  // Projeção: devolve [x, y] em pixels e a profundidade (maior = mais longe).
+  function makeProjector(S) {
+    const cA = Math.cos(AZ), sA = Math.sin(AZ), sE = Math.sin(EL), cE = Math.cos(EL);
+    const half = Math.max(Math.abs(LO), Math.abs(HI));
+    const reach = half * (cA + sA);
+    const upMin = -reach * sE;
+    const upMax = reach * sE + HZ * cE;
+    const m = S * 0.04;
+    const k = Math.min((S - 2 * m) / (2 * reach), (S - 2 * m) / (upMax - upMin));
+    const ox = S / 2;
+    const oy = (S - k * (upMax - upMin)) / 2 + k * upMax;
+    return function (x, y, z) {
+      const u = x * cA - y * sA;
+      const d = x * sA + y * cA;
+      return [ox + u * k, oy - (d * sE + z * HZ * cE) * k, d];
+    };
+  }
+
+  function terrain(fn, S) {
+    const dark = mqDark.matches;
+    const key = [fn, S, dpr, dark].join(':');
+    if (terrainCache[key]) return terrainCache[key];
+    const off = document.createElement('canvas');
+    off.width = Math.round(S * dpr);
+    off.height = Math.round(S * dpr);
+    const c = off.getContext('2d');
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const proj = makeProjector(S);
+    const N = 64;
+    const stops = dark ? RAMP.dark : RAMP.light;
+    const H = [];
+    for (let j = 0; j <= N; j++) {
+      H.push([]);
+      for (let i = 0; i <= N; i++) H[j].push(heightAt(fn, LO + i / N * (HI - LO), LO + j / N * (HI - LO)));
+    }
+    const P = (i, j) => proj(LO + i / N * (HI - LO), LO + j / N * (HI - LO), H[j][i]);
+    const quads = [];
+    for (let j = 0; j < N; j++) {
+      for (let i = 0; i < N; i++) {
+        const p = [P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)];
+        const h = (H[j][i] + H[j][i + 1] + H[j + 1][i + 1] + H[j + 1][i]) / 4;
+        // luz vinda da esquerda: inclinação voltada para a esquerda fica mais clara
+        const slope = (H[j][i] + H[j + 1][i] - H[j][i + 1] - H[j + 1][i + 1]) / 2;
+        quads.push({ p: p, h: h, shade: 1 + Math.max(-0.35, Math.min(0.35, slope * 6)), d: (p[0][2] + p[1][2] + p[2][2] + p[3][2]) / 4 });
+      }
+    }
+    quads.sort((a, b) => b.d - a.d);
+    c.lineJoin = 'round';
+    c.lineWidth = 0.6;
+    c.strokeStyle = dark ? 'rgba(255, 255, 255, .16)' : 'rgba(0, 0, 0, .28)';
+    for (const q of quads) {
+      const col = rampColor(stops, Math.pow(q.h, 0.9));
+      const r = Math.min(255, col[0] * q.shade);
+      const g = Math.min(255, col[1] * q.shade);
+      const b = Math.min(255, col[2] * q.shade);
+      c.fillStyle = `rgb(${r | 0}, ${g | 0}, ${b | 0})`;
+      c.beginPath();
+      c.moveTo(q.p[0][0], q.p[0][1]);
+      c.lineTo(q.p[1][0], q.p[1][1]);
+      c.lineTo(q.p[2][0], q.p[2][1]);
+      c.lineTo(q.p[3][0], q.p[3][1]);
+      c.closePath();
+      c.fill();
+      c.stroke();
+    }
+    return (terrainCache[key] = off);
+  }
+
+  function dot(ctx, x, y, r, fill) {
+    ctx.beginPath();
+    ctx.arc(x, y, r + 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, .45)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  function drawMap() {
+    const S = mapC.clientWidth;
+    if (!S || !colony) return;
+    const ctx = mctx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, S, S);
+    ctx.drawImage(terrain(colony.fn, S), 0, 0, S, S);
+    const proj = makeProjector(S);
+    const Y = cssVar('--yellow') || '#FFC400';
+    const u = Math.max(0.9, S / 300);
+    const place = (x, y) => proj(x, y, heightAt(colony.fn, x, y));
+    const list = [];
+    for (let i = 0; i < colony.sn; i++) {
+      const pt = place(disp[i][0], disp[i][1]);
+      list.push({ x: pt[0], y: pt[1], d: pt[2], role: colony.roles[i] });
+    }
+    list.sort((a, b) => b.d - a.d); // as mais distantes primeiro
+    const bp = place(colony.best.point[0], colony.best.point[1]);
+    for (const f of list) flower(ctx, f.x, f.y, f.role, Y, u);
+    // melhor solução: anel amarelo em volta da cabeça da flor mais alta
+    ctx.beginPath();
+    ctx.arc(bp[0], bp[1] - 15 * u, 12 * u, 0, Math.PI * 2);
+    ctx.lineWidth = 5.5 * u;
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.stroke();
+    ctx.lineWidth = 2.8 * u;
+    ctx.strokeStyle = Y;
+    ctx.stroke();
+  }
+
+  // Flor plantada na montanha. A cor mostra a última abelha que a visitou:
+  // empregada = pétalas amarelas; observadora = pétalas pretas e miolo amarelo;
+  // exploradora = pétalas brancas e miolo preto.
+  function flower(ctx, x, y, role, Y, u) {
+    const head = y - 15 * u;
+    let petal = '#FFFFFF';
+    let core = '#8A8A8A';
+    let edge = '#0A0A0A';
+    if (role === 'employed') { petal = Y; core = '#0A0A0A'; }
+    else if (role === 'onlooker') { petal = '#0A0A0A'; core = Y; edge = Y; }
+    else if (role === 'scout') { petal = '#FFFFFF'; core = '#0A0A0A'; }
+    ctx.beginPath();
+    ctx.ellipse(x, y, 4.5 * u, 1.8 * u, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0, 0, 0, .5)';
+    ctx.fill();
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, head);
+    ctx.lineWidth = 4 * u;
+    ctx.strokeStyle = '#0A0A0A';
+    ctx.stroke();
+    ctx.lineWidth = 2 * u;
+    ctx.strokeStyle = '#FFFFFF';
+    ctx.stroke();
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3;
+      ctx.beginPath();
+      ctx.arc(x + Math.cos(a) * 4.6 * u, head + Math.sin(a) * 4.6 * u, 3.6 * u, 0, Math.PI * 2);
+      ctx.fillStyle = petal;
+      ctx.fill();
+      ctx.lineWidth = 1.1 * u;
+      ctx.strokeStyle = edge;
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(x, head, 3.2 * u, 0, Math.PI * 2);
+    ctx.fillStyle = core;
+    ctx.fill();
+    ctx.lineWidth = 1 * u;
+    ctx.strokeStyle = role === 'onlooker' ? '#0A0A0A' : edge;
+    ctx.stroke();
+  }
+
+  function drawChart() {
+    const W = chartC.clientWidth;
+    const H = chartC.clientHeight;
+    if (!W || !H || !colony) return;
+    const ctx = cctx;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const L = 46;
+    const R = 10;
+    const T = 12;
+    const B = 24;
+    const hist = colony.history;
+    const ys = hist.map((v) => Math.log10(v + 1e-12));
+    let lo = Math.floor(Math.min.apply(null, ys));
+    let hi = Math.ceil(Math.max.apply(null, ys));
+    if (hi === lo) hi = lo + 1;
+    const plotW = W - L - R;
+    const plotH = H - T - B;
+    const yPx = (v) => T + (hi - v) / (hi - lo) * plotH;
+    const xPx = (c) => L + c / colony.maxCycles * plotW;
+    const grid = cssVar('--sep');
+    const text2 = cssVar('--text2');
+    const accent = cssVar('--yellow') || '#FFC400';
+    const lineC = cssVar('--line');
+
+    ctx.font = `12px ${FONT}`;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = grid;
+    ctx.fillStyle = text2;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    const step = Math.max(1, Math.ceil((hi - lo) / 4));
+    for (let k = Math.ceil(lo / step) * step; k <= hi; k += step) {
+      const y = Math.round(yPx(k)) + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(L, y);
+      ctx.lineTo(W - R, y);
+      ctx.stroke();
+      ctx.fillText(sup10(k), L - 6, y);
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    [0, Math.round(colony.maxCycles / 2), colony.maxCycles].forEach((c) => {
+      ctx.fillText(String(c), xPx(c), H - B + 6);
+    });
+
+    ctx.beginPath();
+    hist.forEach((v, c) => {
+      const x = xPx(c);
+      const y = yPx(ys[c]);
+      if (c === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = lineC;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    const last = hist.length - 1;
+    dot(ctx, xPx(last), yPx(ys[last]), 4, accent);
+  }
+
+  // Animação: posições exibidas se aproximam das reais (instantâneo com reduced-motion)
+  function animate() {
+    if (!colony) return;
+    const k = mqReduce.matches ? 1 : 0.22;
+    for (let i = 0; i < colony.sn; i++) {
+      const tgt = colony.flowers[i];
+      const d = disp[i];
+      d[0] += (tgt[0] - d[0]) * k;
+      d[1] += (tgt[1] - d[1]) * k;
+    }
+  }
+
+  function frame(t) {
+    const dt = lastT ? Math.min((t - lastT) / 1000, 0.25) : 0;
+    lastT = t;
+    if (playing && colony && !isDone(colony)) {
+      acc += dt * params.speed;
+      let guard = 0;
+      while (acc >= 1 && playing && guard < 60) {
+        advance();
+        acc -= 1;
+        guard++;
+      }
+      if (acc > 1) acc = 1;
+      if (!playing) acc = 0;
+    }
+    animate();
+    drawMap();
+    drawChart();
+    requestAnimationFrame(frame);
+  }
+
+  function fit(c) {
+    dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth;
+    const h = c.clientHeight;
+    if (!w || !h) return;
+    const W = Math.round(w * dpr);
+    const H = Math.round(h * dpr);
+    if (c.width !== W || c.height !== H) {
+      c.width = W;
+      c.height = H;
+    }
+  }
+  function fitAll() {
+    fit(mapC);
+    fit(chartC);
+  }
+
+  // Controles
+  playBtn.addEventListener('click', () => {
+    if (!colony) return;
+    if (playing) {
+      playing = false;
+    } else {
+      if (isDone(colony)) restart();
+      playing = true;
+    }
+    acc = 0;
+    updateUI();
+  });
+
+  stepBtn.addEventListener('click', () => {
+    playing = false;
+    acc = 0;
+    advance();
+    updateUI();
+  });
+
+  $('btn-reset').addEventListener('click', () => {
+    playing = false;
+    restart();
+  });
+
+  function bindRange(id, outId, key, fmt) {
+    const el = $(id);
+    const out = $(outId);
+    const sync = () => {
+      const v = Number(el.value);
+      params[key] = v;
+      out.textContent = fmt(v);
+      el.style.setProperty('--p', ((v - el.min) / (el.max - el.min) * 100) + '%');
+    };
+    el.addEventListener('input', () => {
+      sync();
+      restart();
+    });
+    sync();
+  }
+  bindRange('sl-sn', 'out-sn', 'sn', (v) => String(v));
+  bindRange('sl-limit', 'out-limit', 'limit', (v) => String(v));
+  bindRange('sl-cycles', 'out-maxCycles', 'maxCycles', (v) => String(v));
+  bindRange('sl-speed', 'out-speed', 'speed', (v) => `${v} ciclos/s`);
+
+  const seg = $('seg');
+  const fnOrder = ['sphere', 'rastrigin', 'ackley'];
+  function moveThumb() {
+    seg.style.setProperty('--i', fnOrder.indexOf(params.fn));
+  }
+  document.querySelectorAll('input[name="fn"]').forEach((radio) => {
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      params.fn = radio.value;
+      moveThumb();
+      restart();
+    });
+  });
+  // Inicialização
+  if ('ResizeObserver' in window) {
+    const ro = new ResizeObserver(fitAll);
+    ro.observe(mapC);
+    ro.observe(chartC);
+  }
+  window.addEventListener('resize', fitAll);
+  fitAll();
+  moveThumb();
+  restart();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
